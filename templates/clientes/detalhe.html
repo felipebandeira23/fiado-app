@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block title %}{{ cliente.nome }} – App de Fiado{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-person-badge me-2"></i>Ficha do Cliente</h1>
+  <div class="d-flex gap-2">
+    <a href="{% url 'clientes:editar' cliente.pk %}" class="btn btn-outline-primary">
+      <i class="bi bi-pencil me-1"></i>Editar
+    </a>
+    <a href="{% url 'clientes:qrcode' cliente.pk %}" class="btn btn-outline-dark">
+      <i class="bi bi-qr-code me-1"></i>QR Code
+    </a>
+    <a href="{% url 'clientes:lista' %}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>Voltar
+    </a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- Dados do cliente -->
+  <div class="col-lg-8">
+    <div class="table-card p-4">
+      <div class="d-flex align-items-center gap-3 mb-4">
+        {% if cliente.foto %}
+        <img src="{{ cliente.foto.url }}" alt="Foto de {{ cliente.nome }}" class="rounded-circle" style="width:72px;height:72px;object-fit:cover;">
+        {% else %}
+        <div class="avatar-mini" style="width:72px;height:72px;font-size:1.75rem;background:#2E75B6;">
+          {{ cliente.nome|first|upper }}
+        </div>
+        {% endif %}
+        <div>
+          <h4 class="fw-bold mb-0">{{ cliente.nome }}</h4>
+          <div class="text-muted">{{ cliente.codigo }}</div>
+          <div class="mt-1">
+            {% if cliente.status == 'ativo' %}<span class="badge bg-success">Ativo</span>
+            {% elif cliente.status == 'bloqueado' %}<span class="badge bg-danger">Bloqueado</span>
+            {% else %}<span class="badge bg-warning text-dark">Inadimplente</span>{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-md-6">
+          <div class="small text-muted fw-semibold">Telefone / WhatsApp</div>
+          <div>{{ cliente.telefone }}</div>
+        </div>
+        {% if cliente.cpf %}
+        <div class="col-md-6">
+          <div class="small text-muted fw-semibold">CPF</div>
+          <div>{{ cliente.cpf }}</div>
+        </div>
+        {% endif %}
+        {% if cliente.endereco %}
+        <div class="col-12">
+          <div class="small text-muted fw-semibold">Endereço</div>
+          <div>{{ cliente.endereco }}</div>
+        </div>
+        {% endif %}
+        {% if cliente.observacoes %}
+        <div class="col-12">
+          <div class="small text-muted fw-semibold">Observações</div>
+          <div class="text-muted">{{ cliente.observacoes }}</div>
+        </div>
+        {% endif %}
+        <div class="col-md-6">
+          <div class="small text-muted fw-semibold">Cadastrado em</div>
+          <div>{{ cliente.created_at|date:"d/m/Y \à\s H:i" }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Saldo e limite -->
+  <div class="col-lg-4">
+    <div class="table-card p-3 mb-3">
+      <h6 class="fw-bold mb-3"><i class="bi bi-wallet2 me-2 text-primary"></i>Financeiro</h6>
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="text-muted small">Saldo devedor</span>
+        <span class="fw-bold text-danger fs-5">R$ {{ cliente.saldo_devedor_total|floatformat:2 }}</span>
+      </div>
+      <div class="d-flex justify-content-between align-items-center">
+        <span class="text-muted small">Limite de crédito</span>
+        <span class="fw-semibold">
+          {% if cliente.limite_credito %}R$ {{ cliente.limite_credito|floatformat:2 }}{% else %}Sem limite{% endif %}
+        </span>
+      </div>
+      <hr>
+      <hr>
+      <div class="d-grid">
+        <a href="{% url 'consumos:lista' %}?cliente_id={{ cliente.pk }}" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-clock-history me-1"></i>Ver histórico de consumos
+        </a>
+      </div>
+    </div>
+
+    <div class="table-card p-3">
+      <h6 class="fw-bold mb-3"><i class="bi bi-qr-code me-2 text-primary"></i>QR Code</h6>
+      {% if cliente.qrcode_obj %}
+      <div class="text-center">
+        <img src="{{ cliente.qrcode_obj.imagem.url }}" alt="QR Code" style="max-width: 130px;" class="rounded">
+      </div>
+      {% else %}
+      <p class="text-muted small">QR Code ainda não gerado.</p>
+      {% endif %}
+      <div class="d-grid mt-2">
+        <a href="{% url 'clientes:qrcode' cliente.pk %}" class="btn btn-outline-dark btn-sm">
+          <i class="bi bi-qr-code me-1"></i>Ver / Baixar QR Code
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

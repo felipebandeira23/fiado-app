@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}QR Code – {{ cliente.nome }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-qr-code me-2"></i>QR Code do Cliente</h1>
+  <a href="{% url 'clientes:detalhe' cliente.pk %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Voltar
+  </a>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-4">
+    <div class="table-card p-4 text-center">
+      <h5 class="fw-bold mb-1">{{ cliente.nome }}</h5>
+      <div class="text-muted mb-3">{{ cliente.codigo }}</div>
+
+      {% if cliente.qrcode_obj %}
+      <div class="qr-container mx-auto mb-3">
+        <img src="{{ cliente.qrcode_obj.imagem.url }}" alt="QR Code de {{ cliente.nome }}" style="width: 200px; height: 200px;">
+      </div>
+      {% else %}
+      <div class="alert alert-warning">QR Code não gerado. Salve o cliente novamente.</div>
+      {% endif %}
+
+      <div class="d-grid gap-2">
+        <a href="{% url 'clientes:download_qrcode' cliente.pk %}" class="btn btn-primary">
+          <i class="bi bi-download me-2"></i>Baixar QR Code (PNG)
+        </a>
+        <button class="btn btn-outline-secondary" onclick="window.print()">
+          <i class="bi bi-printer me-2"></i>Imprimir
+        </button>
+      </div>
+
+      <hr>
+      <p class="text-muted small mb-0">
+        <i class="bi bi-shield-lock me-1"></i>
+        Este QR Code contém apenas um código de identificação seguro.<br>
+        Nenhum dado pessoal é exposto.
+      </p>
+    </div>
+
+    <div class="text-muted small text-center mt-3">
+      <i class="bi bi-lightbulb me-1"></i>
+      <strong>Como usar:</strong> O atendente escaneia este QR Code na tela de Venda Rápida para identificar o cliente instantaneamente.
+    </div>
+  </div>
+</div>
+
+{% block extra_head %}
+<style>
+@media print {
+  .sidebar, .topbar, .page-header, .btn, .text-muted.small { display: none !important; }
+  .main-content { margin-left: 0 !important; }
+  .table-card { box-shadow: none !important; border: 1px solid #ccc; }
+}
+</style>
+{% endblock %}
+{% endblock %}

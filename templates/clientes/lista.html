@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% block title %}Clientes – App de Fiado{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-people me-2"></i>Clientes</h1>
+  <a href="{% url 'clientes:novo' %}" class="btn btn-primary">
+    <i class="bi bi-person-plus me-2"></i>Novo cliente
+  </a>
+</div>
+
+<!-- Filtros -->
+<div class="table-card mb-3 p-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-12 col-md-6">
+      <label class="form-label small fw-semibold mb-1">Buscar</label>
+      <div class="input-group">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="text" name="q" class="form-control" placeholder="Nome, telefone ou código..." value="{{ q }}">
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <label class="form-label small fw-semibold mb-1">Status</label>
+      <select name="status" class="form-select">
+        <option value="">Todos</option>
+        {% for val, label in status_choices %}
+        <option value="{{ val }}" {% if status_filtro == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-3">
+      <button type="submit" class="btn btn-outline-primary w-100">Filtrar</button>
+    </div>
+  </form>
+</div>
+
+<!-- Tabela -->
+<div class="table-card">
+  {% if clientes %}
+  <table class="table table-hover mb-0">
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Nome</th>
+        <th>Telefone</th>
+        <th>Status</th>
+        <th>Limite (R$)</th>
+        <th class="text-end">Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in clientes %}
+      <tr>
+        <td><code class="text-primary">{{ c.codigo }}</code></td>
+        <td>
+          <a href="{% url 'clientes:detalhe' c.pk %}" class="text-decoration-none fw-semibold text-dark">
+            {{ c.nome }}
+          </a>
+        </td>
+        <td>{{ c.telefone }}</td>
+        <td>
+          {% if c.status == 'ativo' %}<span class="badge bg-success">Ativo</span>
+          {% elif c.status == 'bloqueado' %}<span class="badge bg-danger">Bloqueado</span>
+          {% else %}<span class="badge bg-warning text-dark">Inadimplente</span>{% endif %}
+        </td>
+        <td>
+          {% if c.limite_credito %}
+            R$ {{ c.limite_credito|floatformat:2 }}
+          {% else %}
+            <span class="text-muted">—</span>
+          {% endif %}
+        </td>
+        <td class="text-end">
+          <a href="{% url 'clientes:detalhe' c.pk %}" class="btn btn-sm btn-outline-secondary" title="Ver ficha">
+            <i class="bi bi-eye"></i>
+          </a>
+          <a href="{% url 'clientes:editar' c.pk %}" class="btn btn-sm btn-outline-primary" title="Editar">
+            <i class="bi bi-pencil"></i>
+          </a>
+          <a href="{% url 'clientes:qrcode' c.pk %}" class="btn btn-sm btn-outline-dark" title="QR Code">
+            <i class="bi bi-qr-code"></i>
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="text-center text-muted py-5">
+    <i class="bi bi-people fs-1 d-block mb-3 text-muted"></i>
+    {% if q or status_filtro %}
+      Nenhum cliente encontrado com os filtros aplicados.
+      <div class="mt-2"><a href="{% url 'clientes:lista' %}" class="btn btn-sm btn-outline-secondary">Limpar filtros</a></div>
+    {% else %}
+      Nenhum cliente cadastrado ainda.
+      <div class="mt-2"><a href="{% url 'clientes:novo' %}" class="btn btn-primary btn-sm">Cadastrar primeiro cliente</a></div>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<div class="text-muted small mt-2">{{ clientes|length }} cliente(s) encontrado(s)</div>
+{% endblock %}

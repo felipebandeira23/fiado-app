@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% block title %}Produtos – App de Fiado{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-box-seam me-2"></i>Produtos</h1>
+  {% if user.is_admin_sistema %}
+  <a href="{% url 'produtos:novo' %}" class="btn btn-primary">
+    <i class="bi bi-plus-circle me-2"></i>Novo produto
+  </a>
+  {% endif %}
+</div>
+
+<!-- Filtro por categoria -->
+<div class="table-card mb-3 p-3">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-12 col-md-6">
+      <label class="form-label small fw-semibold mb-1">Filtrar por categoria</label>
+      <select name="categoria" class="form-select">
+        <option value="">Todas as categorias</option>
+        {% for cat in categorias %}
+        <option value="{{ cat }}" {% if categoria_filtro == cat %}selected{% endif %}>{{ cat }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-3">
+      <button type="submit" class="btn btn-outline-primary w-100">Filtrar</button>
+    </div>
+    {% if categoria_filtro %}
+    <div class="col-6 col-md-3">
+      <a href="{% url 'produtos:lista' %}" class="btn btn-outline-secondary w-100">Limpar</a>
+    </div>
+    {% endif %}
+  </form>
+</div>
+
+<div class="table-card">
+  {% if produtos %}
+  <table class="table table-hover mb-0">
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>Categoria</th>
+        <th>Valor unit.</th>
+        <th>Status</th>
+        {% if user.is_admin_sistema %}<th class="text-end">Ações</th>{% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in produtos %}
+      <tr class="{% if not p.ativo %}table-light text-muted{% endif %}">
+        <td>
+          <span class="fw-semibold">{{ p.nome }}</span>
+          {% if p.descricao %}<br><small class="text-muted">{{ p.descricao|truncatechars:60 }}</small>{% endif %}
+        </td>
+        <td>
+          {% if p.categoria %}
+          <span class="badge bg-light text-dark border">{{ p.categoria }}</span>
+          {% else %}<span class="text-muted">—</span>{% endif %}
+        </td>
+        <td class="fw-semibold">R$ {{ p.valor_unitario|floatformat:2 }}</td>
+        <td>
+          {% if p.ativo %}<span class="badge bg-success">Ativo</span>
+          {% else %}<span class="badge bg-secondary">Inativo</span>{% endif %}
+        </td>
+        {% if user.is_admin_sistema %}
+        <td class="text-end">
+          <a href="{% url 'produtos:editar' p.pk %}" class="btn btn-sm btn-outline-primary" title="Editar">
+            <i class="bi bi-pencil"></i>
+          </a>
+          <button class="btn btn-sm btn-outline-{% if p.ativo %}warning{% else %}success{% endif %} btn-toggle"
+                  data-url="{% url 'produtos:toggle' p.pk %}"
+                  data-ativo="{{ p.ativo|lower }}"
+                  title="{% if p.ativo %}Desativar{% else %}Ativar{% endif %}">
+            <i class="bi bi-toggle-{% if p.ativo %}on{% else %}off{% endif %}"></i>
+          </button>
+        </td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="text-center text-muted py-5">
+    <i class="bi bi-box-seam fs-1 d-block mb-2"></i>
+    Nenhum produto cadastrado ainda.
+    {% if user.is_admin_sistema %}
+    <div class="mt-2"><a href="{% url 'produtos:novo' %}" class="btn btn-primary btn-sm">Cadastrar produto</a></div>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.btn-toggle').forEach(btn => {
+  btn.addEventListener('click', () => {
+    fetch(btn.dataset.url, {
+      method: 'POST',
+      headers: {'X-CSRFToken': '{{ csrf_token }}'},
+    })
+    .then(r => r.json())
+    .then(data => location.reload());
+  });
+});
+</script>
+{% endblock %}

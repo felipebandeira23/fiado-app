@@ -1,0 +1,292 @@
+/* ══════════════════════════════════════════════════════
+   App de Fiado — CSS Principal
+   Cores: Azul escuro #1F4E79 | Azul médio #2E75B6
+══════════════════════════════════════════════════════ */
+
+:root {
+  --sidebar-width: 240px;
+  --color-primary: #1F4E79;
+  --color-accent: #2E75B6;
+  --color-sidebar-bg: #1a2e45;
+  --color-sidebar-text: #c8d8e8;
+  --color-sidebar-hover: rgba(255,255,255,0.08);
+  --color-sidebar-active: #2E75B6;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #f0f4f8;
+  color: #1a1a2e;
+}
+
+/* ── SIDEBAR ──────────────────────────────────────── */
+.sidebar {
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: var(--sidebar-width);
+  background: var(--color-sidebar-bg);
+  color: var(--color-sidebar-text);
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+  overflow-y: auto;
+  transition: transform 0.3s ease;
+}
+
+.sidebar-header {
+  padding: 1.2rem 1rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  display: flex;
+  align-items: center;
+  letter-spacing: 0.5px;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 0.75rem 0;
+}
+
+.nav-section {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: rgba(255,255,255,0.35);
+  padding: 0.75rem 1rem 0.25rem;
+  text-transform: uppercase;
+}
+
+.sidebar-nav .nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 1rem;
+  color: var(--color-sidebar-text);
+  text-decoration: none;
+  font-size: 0.9rem;
+  border-radius: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sidebar-nav .nav-link:hover {
+  background: var(--color-sidebar-hover);
+  color: #fff;
+}
+
+.sidebar-nav .nav-link.active {
+  background: var(--color-sidebar-active);
+  color: #fff;
+  font-weight: 600;
+}
+
+.sidebar-nav .nav-link.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.sidebar-nav .nav-link i {
+  width: 18px;
+  text-align: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.sidebar-footer {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  font-size: 0.85rem;
+  color: var(--color-sidebar-text);
+}
+
+.avatar-mini {
+  width: 32px; height: 32px;
+  background: var(--color-accent);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #fff;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+/* ── CONTEÚDO PRINCIPAL ──────────────────────────── */
+.main-content {
+  margin-left: var(--sidebar-width);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.page-content {
+  padding: 1.5rem;
+  flex: 1;
+}
+
+/* ── TOPBAR MOBILE ───────────────────────────────── */
+.topbar {
+  background: var(--color-primary);
+  color: #fff;
+  padding: 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  position: sticky;
+  top: 0;
+  z-index: 999;
+}
+
+.topbar .btn {
+  color: #fff;
+  border-color: rgba(255,255,255,0.3);
+}
+
+/* ── CABEÇALHO DE PÁGINA ─────────────────────────── */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #dee2e6;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.page-header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin: 0;
+}
+
+/* ── CARDS DO DASHBOARD ──────────────────────────── */
+.stat-card {
+  border: none;
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+
+.stat-icon {
+  width: 52px; height: 52px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.stat-card .stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.stat-card .stat-label {
+  font-size: 0.8rem;
+  color: #6c757d;
+  margin-top: 2px;
+}
+
+/* ── TABELAS ─────────────────────────────────────── */
+.table-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  overflow: hidden;
+}
+
+.table-card .table {
+  margin: 0;
+}
+
+.table-card .table thead th {
+  background: #f8f9fa;
+  color: #495057;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  border-bottom: 2px solid #dee2e6;
+  padding: 0.75rem 1rem;
+}
+
+.table-card .table tbody td {
+  padding: 0.7rem 1rem;
+  vertical-align: middle;
+  border-color: #f0f0f0;
+}
+
+.table-card .table tbody tr:hover {
+  background: #f8f9ff;
+}
+
+/* ── FORMULÁRIOS ─────────────────────────────────── */
+.form-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  padding: 1.75rem;
+  max-width: 720px;
+}
+
+/* ── QR CODE ─────────────────────────────────────── */
+.qr-container {
+  background: #fff;
+  border: 3px solid var(--color-primary);
+  border-radius: 16px;
+  padding: 1.5rem;
+  display: inline-block;
+  text-align: center;
+}
+
+.qr-container img {
+  max-width: 220px;
+}
+
+/* ── STATUS BADGES ───────────────────────────────── */
+.badge.status-ativo { background-color: #198754 !important; }
+.badge.status-bloqueado { background-color: #dc3545 !important; }
+.badge.status-inadimplente { background-color: #fd7e14 !important; color: #fff !important; }
+
+/* ── RESPONSIVO ──────────────────────────────────── */
+@media (max-width: 767.98px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  .main-content {
+    margin-left: 0;
+  }
+}
+
+/* ── UTILITÁRIOS ─────────────────────────────────── */
+.btn-primary {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+.btn-primary:hover {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.text-primary { color: var(--color-primary) !important; }

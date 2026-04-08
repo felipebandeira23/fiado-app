@@ -1,0 +1,638 @@
+{% extends 'base.html' %}
+{% block title %}Venda Rápida – App de Fiado{% endblock %}
+
+{% block extra_head %}
+<!-- Alpine.js — reatividade do carrinho -->
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.10/cdn.min.js"></script>
+<!-- html5-qrcode — leitura de QR Code pela câmera -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+
+<style>
+  /* ── Venda Rápida — Estilos específicos ── */
+  .cliente-card {
+    border: 2px solid #dee2e6;
+    border-radius: 12px;
+    transition: border-color 0.2s;
+  }
+  .cliente-card.selecionado { border-color: #2E75B6; background: #f0f7ff; }
+  .cliente-card.bloqueado   { border-color: #dc3545; background: #fff5f5; }
+
+  .produto-btn {
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    padding: 0.6rem 0.75rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: #fff;
+    text-align: left;
+    width: 100%;
+  }
+  .produto-btn:hover { border-color: #2E75B6; background: #f0f7ff; }
+  .produto-btn .preco { color: #2E75B6; font-weight: 700; font-size: 0.9rem; }
+  .produto-btn .categoria { font-size: 0.7rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .carrinho-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .carrinho-item:last-child { border-bottom: none; }
+
+  #qr-reader { border-radius: 10px; overflow: hidden; }
+
+  .alerta-limite { animation: pulse 1s infinite; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+
+  .busca-resultado {
+    position: absolute;
+    z-index: 1000;
+    width: 100%;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    max-height: 260px;
+    overflow-y: auto;
+  }
+  .busca-item {
+    padding: 0.6rem 0.85rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f5f5f5;
+  }
+  .busca-item:hover { background: #f0f7ff; }
+  .busca-item:last-child { border-bottom: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div x-data="vendaRapida()" x-init="init()" class="h-100">
+
+  <!-- ══ Cabeçalho ══ -->
+  <div class="page-header">
+    <h1><i class="bi bi-lightning-charge me-2 text-warning"></i>Venda Rápida</h1>
+    <div class="text-muted small">Registre consumos fiados com agilidade</div>
+  </div>
+
+  <!-- ══ Alerta global ══ -->
+  <template x-if="alertaMsg">
+    <div :class="'alert alert-' + alertaTipo + ' alert-dismissible'" role="alert">
+      <span x-html="alertaMsg"></span>
+      <button type="button" class="btn-close" @click="alertaMsg=''"></button>
+    </div>
+  </template>
+
+  <div class="row g-3">
+
+    <!-- ════════════════════════════ COL ESQUERDA: Cliente + Produtos ════ -->
+    <div class="col-lg-7">
+
+      <!-- ── Identificação do cliente ── -->
+      <div class="table-card p-3 mb-3">
+        <h6 class="fw-bold mb-3"><i class="bi bi-person-check me-2 text-primary"></i>1. Identificar cliente</h6>
+
+        <div class="row g-2 mb-3">
+          <!-- Busca por texto -->
+          <div class="col-12 col-md-8">
+            <label class="form-label small fw-semibold">Buscar por nome, telefone ou código</label>
+            <div class="position-relative">
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input
+                  type="text"
+                  class="form-control"
+                  placeholder="Digite para buscar..."
+                  x-model="buscaTexto"
+                  @input.debounce.400ms="buscarCliente()"
+                  @keydown.escape="resultadosBusca=[]"
+                  autocomplete="off"
+                >
+              </div>
+              <!-- Resultados do autocomplete -->
+              <template x-if="resultadosBusca.length > 0">
+                <div class="busca-resultado">
+                  <template x-for="c in resultadosBusca" :key="c.id">
+                    <div class="busca-item" @click="selecionarCliente(c)">
+                      <div class="fw-semibold" x-text="c.nome"></div>
+                      <div class="text-muted small">
+                        <span x-text="c.codigo"></span> · <span x-text="c.telefone"></span>
+                      </div>
+                    </div>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          <!-- Botão QR Code -->
+          <div class="col-12 col-md-4 d-flex align-items-end">
+            <button
+              class="btn btn-outline-dark w-100"
+              @click="abrirQRCode()"
+              :disabled="scannerAberto"
+            >
+              <i class="bi bi-qr-code-scan me-2"></i>
+              <span x-text="scannerAberto ? 'Lendo...' : 'Ler QR Code'"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Leitor de QR Code (câmera) -->
+        <template x-if="scannerAberto">
+          <div class="mb-3">
+            <div id="qr-reader" style="max-width: 360px;"></div>
+            <button class="btn btn-sm btn-outline-secondary mt-2" @click="fecharQRCode()">
+              <i class="bi bi-x-circle me-1"></i>Cancelar leitura
+            </button>
+          </div>
+        </template>
+
+        <!-- Card do cliente selecionado -->
+        <template x-if="cliente">
+          <div :class="'cliente-card p-3 ' + (cliente.bloqueado ? 'bloqueado' : 'selecionado')">
+            <div class="d-flex align-items-center gap-3">
+              <template x-if="cliente.foto_url">
+                <img :src="cliente.foto_url" class="rounded-circle" style="width:52px;height:52px;object-fit:cover;">
+              </template>
+              <template x-if="!cliente.foto_url">
+                <div class="avatar-mini" style="width:52px;height:52px;font-size:1.3rem;background:#2E75B6;" x-text="cliente.nome.charAt(0).toUpperCase()"></div>
+              </template>
+              <div class="flex-grow-1">
+                <div class="fw-bold fs-6" x-text="cliente.nome"></div>
+                <div class="text-muted small" x-text="cliente.codigo + ' · ' + cliente.telefone"></div>
+                <div class="mt-1">
+                  <span :class="'badge bg-' + (cliente.status === 'ativo' ? 'success' : cliente.status === 'bloqueado' ? 'danger' : 'warning')"
+                        x-text="cliente.status_display"></span>
+                  <template x-if="cliente.limite_credito > 0">
+                    <span class="ms-2 small text-muted">
+                      Limite: R$ <span x-text="cliente.limite_credito.toFixed(2)"></span>
+                      · Saldo devedor: R$ <span x-text="cliente.saldo_devedor.toFixed(2)"></span>
+                    </span>
+                  </template>
+                </div>
+              </div>
+              <button class="btn btn-sm btn-outline-secondary" @click="limparCliente()" title="Trocar cliente">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+
+            <!-- Alerta de bloqueio -->
+            <template x-if="cliente.bloqueado">
+              <div class="alert alert-danger mt-2 mb-0 py-2 px-3">
+                <i class="bi bi-ban me-2"></i>
+                <strong>Cliente bloqueado.</strong> Não é possível registrar consumo.
+              </div>
+            </template>
+
+            <!-- Alerta de limite -->
+            <template x-if="!cliente.bloqueado && avisoLimite">
+              <div class="alert alert-warning mt-2 mb-0 py-2 px-3 alerta-limite">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <strong>Atenção:</strong> este consumo ultrapassa o limite de crédito do cliente.
+              </div>
+            </template>
+          </div>
+        </template>
+
+        <template x-if="!cliente">
+          <div class="text-muted text-center py-3 border rounded" style="border-style:dashed!important;">
+            <i class="bi bi-person-dash fs-4 d-block mb-1 text-muted"></i>
+            Nenhum cliente selecionado
+          </div>
+        </template>
+      </div>
+
+      <!-- ── Seleção de produtos ── -->
+      <div class="table-card p-3">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h6 class="fw-bold mb-0"><i class="bi bi-box-seam me-2 text-primary"></i>2. Selecionar produtos</h6>
+          <template x-if="categorias.length > 1">
+            <div class="d-flex gap-1 flex-wrap">
+              <button
+                class="btn btn-xs btn-sm"
+                :class="categoriaFiltro === '' ? 'btn-primary' : 'btn-outline-secondary'"
+                @click="categoriaFiltro = ''"
+                style="font-size:0.75rem; padding:2px 10px;"
+              >Todos</button>
+              <template x-for="cat in categorias" :key="cat">
+                <button
+                  class="btn btn-sm"
+                  :class="categoriaFiltro === cat ? 'btn-primary' : 'btn-outline-secondary'"
+                  @click="categoriaFiltro = cat"
+                  style="font-size:0.75rem; padding:2px 10px;"
+                  x-text="cat"
+                ></button>
+              </template>
+            </div>
+          </template>
+        </div>
+
+        <template x-if="produtosCarregando">
+          <div class="text-center text-muted py-3"><div class="spinner-border spinner-border-sm me-2"></div>Carregando produtos...</div>
+        </template>
+
+        <div class="row g-2">
+          <template x-for="p in produtosFiltrados" :key="p.id">
+            <div class="col-6 col-md-4">
+              <button class="produto-btn" @click="adicionarItem(p)">
+                <div class="categoria" x-text="p.categoria || 'Produto'"></div>
+                <div class="fw-semibold small" x-text="p.nome"></div>
+                <div class="preco mt-1">R$ <span x-text="p.valor_unitario.toFixed(2)"></span></div>
+              </button>
+            </div>
+          </template>
+        </div>
+
+        <template x-if="!produtosCarregando && produtosFiltrados.length === 0">
+          <div class="text-center text-muted py-3">Nenhum produto encontrado.</div>
+        </template>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════ COL DIREITA: Carrinho ════════════════ -->
+    <div class="col-lg-5">
+      <div class="table-card p-3 sticky-top" style="top: 1rem;">
+        <h6 class="fw-bold mb-3"><i class="bi bi-cart3 me-2 text-primary"></i>3. Carrinho</h6>
+
+        <!-- Itens do carrinho -->
+        <template x-if="carrinho.length === 0">
+          <div class="text-center text-muted py-4 border rounded" style="border-style:dashed!important;">
+            <i class="bi bi-cart fs-3 d-block mb-2 text-muted"></i>
+            Nenhum item adicionado
+          </div>
+        </template>
+
+        <template x-if="carrinho.length > 0">
+          <div>
+            <template x-for="(item, idx) in carrinho" :key="item.produto_id">
+              <div class="carrinho-item">
+                <div class="flex-grow-1">
+                  <div class="small fw-semibold" x-text="item.nome"></div>
+                  <div class="text-muted" style="font-size:0.78rem;">
+                    R$ <span x-text="item.valor_unitario.toFixed(2)"></span>
+                    × <span x-text="item.quantidade"></span>
+                    = <strong>R$ <span x-text="(item.valor_unitario * item.quantidade).toFixed(2)"></span></strong>
+                  </div>
+                </div>
+                <!-- Controle de quantidade -->
+                <div class="d-flex align-items-center gap-1">
+                  <button class="btn btn-sm btn-outline-secondary" style="width:28px;height:28px;padding:0;line-height:1;" @click="diminuirQtd(idx)">
+                    <i class="bi bi-dash"></i>
+                  </button>
+                  <span class="fw-bold" style="min-width:24px;text-align:center;" x-text="item.quantidade"></span>
+                  <button class="btn btn-sm btn-outline-secondary" style="width:28px;height:28px;padding:0;line-height:1;" @click="aumentarQtd(idx)">
+                    <i class="bi bi-plus"></i>
+                  </button>
+                  <button class="btn btn-sm btn-outline-danger ms-1" style="width:28px;height:28px;padding:0;line-height:1;" @click="removerItem(idx)" title="Remover">
+                    <i class="bi bi-trash3" style="font-size:0.75rem;"></i>
+                  </button>
+                </div>
+              </div>
+            </template>
+          </div>
+        </template>
+
+        <!-- Observação -->
+        <template x-if="carrinho.length > 0">
+          <div class="mt-3">
+            <label class="form-label small fw-semibold">Observação (opcional)</label>
+            <textarea class="form-control form-control-sm" rows="2" placeholder="Alguma nota para este consumo..." x-model="observacao"></textarea>
+          </div>
+        </template>
+
+        <!-- Total e botão salvar -->
+        <div class="border-top mt-3 pt-3">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <span class="fw-bold fs-6">Total</span>
+            <span class="fw-bold fs-5 text-primary">R$ <span x-text="total.toFixed(2)"></span></span>
+          </div>
+
+          <button
+            class="btn btn-primary w-100 py-2 fw-bold"
+            :disabled="!podeRegistrar || salvando"
+            @click="salvarConsumo()"
+          >
+            <template x-if="!salvando">
+              <span><i class="bi bi-check2-circle me-2"></i>Registrar Consumo</span>
+            </template>
+            <template x-if="salvando">
+              <span><span class="spinner-border spinner-border-sm me-2"></span>Salvando...</span>
+            </template>
+          </button>
+
+          <template x-if="!cliente">
+            <div class="text-muted text-center small mt-2">Selecione um cliente primeiro</div>
+          </template>
+          <template x-if="cliente && carrinho.length === 0">
+            <div class="text-muted text-center small mt-2">Adicione ao menos um produto</div>
+          </template>
+          <template x-if="cliente && cliente.bloqueado">
+            <div class="text-danger text-center small mt-2"><i class="bi bi-ban me-1"></i>Cliente bloqueado</div>
+          </template>
+        </div>
+
+        <!-- Limpar carrinho -->
+        <template x-if="carrinho.length > 0">
+          <div class="text-center mt-2">
+            <button class="btn btn-sm btn-link text-muted" @click="limparCarrinho()">
+              <i class="bi bi-trash me-1"></i>Limpar carrinho
+            </button>
+          </div>
+        </template>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Modal de confirmação de sucesso ══ -->
+  <div class="modal fade" id="modalSucesso" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-body text-center p-4">
+          <div class="text-success mb-3" style="font-size:3rem;"><i class="bi bi-check-circle-fill"></i></div>
+          <h5 class="fw-bold">Consumo registrado!</h5>
+          <p class="text-muted mb-0">
+            <strong x-text="sucessoNome"></strong><br>
+            R$ <span x-text="sucessoTotal"></span> · <span x-text="sucessoItens"></span> item(ns)
+          </p>
+          <template x-if="sucessoAviso">
+            <div class="alert alert-warning mt-3 text-start" x-text="sucessoAviso"></div>
+          </template>
+          <button class="btn btn-primary mt-3 px-4" @click="novoAtendimento()">
+            <i class="bi bi-lightning-charge me-2"></i>Novo atendimento
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /x-data -->
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+const CSRF_TOKEN = '{{ csrf_token }}';
+
+function vendaRapida() {
+  return {
+    // Cliente
+    cliente: null,
+    buscaTexto: '',
+    resultadosBusca: [],
+
+    // QR Code
+    scannerAberto: false,
+    qrScanner: null,
+
+    // Produtos
+    produtos: [],
+    categorias: [],
+    categoriaFiltro: '',
+    produtosCarregando: true,
+
+    // Carrinho
+    carrinho: [],
+    observacao: '',
+    salvando: false,
+
+    // Alertas
+    alertaMsg: '',
+    alertaTipo: 'info',
+    avisoLimite: false,
+
+    // Sucesso
+    sucessoNome: '',
+    sucessoTotal: '',
+    sucessoItens: '',
+    sucessoAviso: '',
+
+    // ── Inicialização ──────────────────────────────────
+    async init() {
+      await this.carregarProdutos();
+    },
+
+    async carregarProdutos() {
+      this.produtosCarregando = true;
+      try {
+        const res = await fetch('/produtos/api/ativos/');
+        this.produtos = await res.json();
+        const cats = [...new Set(this.produtos.map(p => p.categoria).filter(Boolean))].sort();
+        this.categorias = cats;
+      } catch (e) {
+        this.showAlert('Erro ao carregar produtos.', 'danger');
+      } finally {
+        this.produtosCarregando = false;
+      }
+    },
+
+    // ── Produtos filtrados ──────────────────────────────
+    get produtosFiltrados() {
+      if (!this.categoriaFiltro) return this.produtos;
+      return this.produtos.filter(p => p.categoria === this.categoriaFiltro);
+    },
+
+    // ── Total do carrinho ──────────────────────────────
+    get total() {
+      return this.carrinho.reduce((s, i) => s + i.valor_unitario * i.quantidade, 0);
+    },
+
+    get podeRegistrar() {
+      return this.cliente && !this.cliente.bloqueado && this.carrinho.length > 0 && !this.salvando;
+    },
+
+    // ── Busca de cliente ──────────────────────────────
+    async buscarCliente() {
+      const q = this.buscaTexto.trim();
+      if (q.length < 2) { this.resultadosBusca = []; return; }
+      try {
+        const res = await fetch(`/api/clientes/busca/?q=${encodeURIComponent(q)}`);
+        this.resultadosBusca = await res.json();
+      } catch (e) { this.resultadosBusca = []; }
+    },
+
+    selecionarCliente(c) {
+      this.cliente = c;
+      this.buscaTexto = '';
+      this.resultadosBusca = [];
+      this.verificarLimite();
+    },
+
+    limparCliente() {
+      this.cliente = null;
+      this.avisoLimite = false;
+    },
+
+    verificarLimite() {
+      if (!this.cliente || this.cliente.limite_credito <= 0) {
+        this.avisoLimite = false;
+        return;
+      }
+      const saldo = this.cliente.saldo_devedor || 0;
+      this.avisoLimite = (saldo + this.total) > this.cliente.limite_credito;
+    },
+
+    // ── QR Code ──────────────────────────────────────
+    async abrirQRCode() {
+      this.scannerAberto = true;
+      await this.$nextTick();
+
+      this.qrScanner = new Html5Qrcode('qr-reader');
+      try {
+        await this.qrScanner.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          async (decodedText) => {
+            await this.fecharQRCode();
+            await this.processarTokenQR(decodedText);
+          },
+          () => {}
+        );
+      } catch (e) {
+        // Fallback: leitor USB (campo manual)
+        await this.fecharQRCode();
+        this.abrirLeituraManualQR();
+      }
+    },
+
+    async fecharQRCode() {
+      if (this.qrScanner) {
+        try { await this.qrScanner.stop(); } catch(e) {}
+        this.qrScanner = null;
+      }
+      this.scannerAberto = false;
+    },
+
+    abrirLeituraManualQR() {
+      const token = prompt('Cole ou escaneie o token do QR Code:');
+      if (token) this.processarTokenQR(token.trim());
+    },
+
+    async processarTokenQR(texto) {
+      // Extrai token do URL ou usa diretamente
+      let token = texto;
+      const match = texto.match(/\/api\/cliente\/qr\/([a-f0-9-]{36})\//);
+      if (match) token = match[1];
+
+      try {
+        const res = await fetch(`/api/cliente/qr/${token}/`);
+        if (!res.ok) {
+          this.showAlert('QR Code não reconhecido. Cliente não encontrado.', 'warning');
+          return;
+        }
+        const cliente = await res.json();
+        this.selecionarCliente(cliente);
+      } catch (e) {
+        this.showAlert('Erro ao buscar cliente pelo QR Code.', 'danger');
+      }
+    },
+
+    // ── Carrinho ──────────────────────────────────────
+    adicionarItem(produto) {
+      const idx = this.carrinho.findIndex(i => i.produto_id === produto.id);
+      if (idx >= 0) {
+        this.carrinho[idx].quantidade++;
+      } else {
+        this.carrinho.push({
+          produto_id: produto.id,
+          nome: produto.nome,
+          categoria: produto.categoria,
+          valor_unitario: produto.valor_unitario,
+          quantidade: 1,
+        });
+      }
+      this.$nextTick(() => this.verificarLimite());
+    },
+
+    aumentarQtd(idx) { this.carrinho[idx].quantidade++; this.verificarLimite(); },
+
+    diminuirQtd(idx) {
+      if (this.carrinho[idx].quantidade > 1) {
+        this.carrinho[idx].quantidade--;
+      } else {
+        this.removerItem(idx);
+      }
+      this.verificarLimite();
+    },
+
+    removerItem(idx) {
+      this.carrinho.splice(idx, 1);
+      this.verificarLimite();
+    },
+
+    limparCarrinho() {
+      this.carrinho = [];
+      this.observacao = '';
+      this.avisoLimite = false;
+    },
+
+    // ── Salvar consumo ────────────────────────────────
+    async salvarConsumo() {
+      if (!this.podeRegistrar) return;
+      this.salvando = true;
+
+      const payload = {
+        cliente_id: this.cliente.id,
+        observacao: this.observacao,
+        itens: this.carrinho.map(i => ({
+          produto_id: i.produto_id,
+          quantidade: i.quantidade,
+          valor_unitario: i.valor_unitario,
+        })),
+      };
+
+      try {
+        const res = await fetch('/api/consumos/salvar/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': CSRF_TOKEN,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          this.showAlert(data.erro || 'Erro ao salvar consumo.', 'danger');
+          return;
+        }
+
+        // Sucesso!
+        this.sucessoNome = data.cliente_nome;
+        this.sucessoTotal = data.valor_total.toFixed(2);
+        this.sucessoItens = data.num_itens;
+        this.sucessoAviso = data.aviso || '';
+
+        const modal = new bootstrap.Modal(document.getElementById('modalSucesso'));
+        modal.show();
+
+      } catch (e) {
+        this.showAlert('Erro de conexão. Tente novamente.', 'danger');
+      } finally {
+        this.salvando = false;
+      }
+    },
+
+    novoAtendimento() {
+      bootstrap.Modal.getInstance(document.getElementById('modalSucesso')).hide();
+      this.cliente = null;
+      this.limparCarrinho();
+      this.alertaMsg = '';
+      this.avisoLimite = false;
+    },
+
+    // ── Utilitários ──────────────────────────────────
+    showAlert(msg, tipo = 'info') {
+      this.alertaMsg = msg;
+      this.alertaTipo = tipo;
+      setTimeout(() => { this.alertaMsg = ''; }, 6000);
+    },
+  };
+}
+</script>
+{% endblock %}

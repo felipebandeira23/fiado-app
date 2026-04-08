@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}{{ titulo }} – App de Fiado{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-person-gear me-2"></i>{{ titulo }}</h1>
+  <a href="{% url 'usuarios:lista' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Voltar
+  </a>
+</div>
+
+<div class="form-card">
+  <form method="post">
+    {% csrf_token %}
+    {% crispy form %}
+    <div class="d-flex gap-2 mt-3">
+      <button type="submit" class="btn btn-primary px-4">
+        <i class="bi bi-check2 me-1"></i>Salvar
+      </button>
+      <a href="{% url 'usuarios:lista' %}" class="btn btn-outline-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

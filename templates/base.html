@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}App de Fiado{% endblock %}</title>
+
+  <!-- Bootstrap 5 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css">
+  <!-- CSS customizado -->
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/custom.css' %}">
+
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+{% if user.is_authenticated %}
+<!-- ═══════════════════════════════════════════════════════ SIDEBAR -->
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <i class="bi bi-receipt-cutoff me-2"></i>
+    <span>App de Fiado</span>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section">GERAL</div>
+    <a href="{% url 'clientes:dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+      <i class="bi bi-speedometer2"></i> Dashboard
+    </a>
+    <a href="{% url 'clientes:lista' %}" class="nav-link {% if 'clientes' in request.resolver_match.app_name and request.resolver_match.url_name != 'dashboard' %}active{% endif %}">
+      <i class="bi bi-people"></i> Clientes
+    </a>
+    <a href="{% url 'produtos:lista' %}" class="nav-link {% if request.resolver_match.app_name == 'produtos' %}active{% endif %}">
+      <i class="bi bi-box-seam"></i> Produtos
+    </a>
+
+    <div class="nav-section mt-2">OPERAÇÃO</div>
+    <a href="{% url 'consumos:venda_rapida' %}" class="nav-link {% if request.resolver_match.url_name == 'venda_rapida' %}active{% endif %}">
+      <i class="bi bi-lightning-charge"></i> Venda Rápida
+    </a>
+    <a href="{% url 'consumos:lista' %}" class="nav-link {% if request.resolver_match.url_name == 'lista' and request.resolver_match.app_name == 'consumos' %}active{% endif %}">
+      <i class="bi bi-clock-history"></i> Consumos
+    </a>
+    <a href="#" class="nav-link disabled text-muted">
+      <i class="bi bi-file-earmark-text"></i> Faturas
+      <span class="badge bg-secondary ms-auto">Fase 3</span>
+    </a>
+    <a href="#" class="nav-link disabled text-muted">
+      <i class="bi bi-cash-coin"></i> Pagamentos
+      <span class="badge bg-secondary ms-auto">Fase 3</span>
+    </a>
+
+    <div class="nav-section mt-2">GESTÃO</div>
+    <a href="#" class="nav-link disabled text-muted">
+      <i class="bi bi-graph-up"></i> Relatórios
+      <span class="badge bg-secondary ms-auto">Fase 4</span>
+    </a>
+    {% if user.is_admin_sistema %}
+    <a href="{% url 'usuarios:lista' %}" class="nav-link {% if request.resolver_match.app_name == 'usuarios' %}active{% endif %}">
+      <i class="bi bi-person-gear"></i> Usuários
+    </a>
+    {% endif %}
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="d-flex align-items-center gap-2">
+      <div class="avatar-mini">{{ user.nome_completo|first|upper }}</div>
+      <div class="flex-grow-1 overflow-hidden">
+        <div class="text-truncate small fw-semibold">{{ user.nome_completo|default:user.username }}</div>
+        <div class="text-muted" style="font-size:0.7rem;">{{ user.get_perfil_display }}</div>
+      </div>
+      <a href="{% url 'logout' %}" class="btn btn-sm btn-outline-secondary" title="Sair">
+        <i class="bi bi-box-arrow-right"></i>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ CONTEÚDO PRINCIPAL -->
+<div class="main-content" id="mainContent">
+
+  <!-- Topbar mobile -->
+  <div class="topbar d-md-none">
+    <button class="btn btn-sm" id="sidebarToggle">
+      <i class="bi bi-list fs-5"></i>
+    </button>
+    <span class="fw-bold">App de Fiado</span>
+  </div>
+
+  <!-- Alertas / Mensagens -->
+  {% if messages %}
+  <div class="px-3 pt-3">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Conteúdo da página -->
+  <div class="page-content">
+    {% block content %}{% endblock %}
+  </div>
+
+</div><!-- /main-content -->
+
+{% else %}
+<!-- Página sem sidebar (login) -->
+{% block auth_content %}{% endblock %}
+{% endif %}
+
+<!-- Bootstrap JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+
+<script>
+  // Toggle sidebar no mobile
+  const sidebarToggle = document.getElementById('sidebarToggle');
+  if (sidebarToggle) {
+    sidebarToggle.addEventListener('click', () => {
+      document.getElementById('sidebar').classList.toggle('open');
+    });
+  }
+</script>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

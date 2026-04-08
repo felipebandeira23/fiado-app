@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block title %}Detalhe do Consumo – App de Fiado{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-receipt me-2"></i>Detalhe do Consumo</h1>
+  <div class="d-flex gap-2">
+    <a href="{% url 'consumos:lista' %}?cliente_id={{ consumo.cliente.pk }}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>Voltar
+    </a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="table-card p-4">
+      <div class="row mb-4">
+        <div class="col-md-6">
+          <div class="small text-muted fw-semibold">Cliente</div>
+          <div class="fw-bold fs-5">
+            <a href="{% url 'clientes:detalhe' consumo.cliente.pk %}" class="text-decoration-none">
+              {{ consumo.cliente.nome }}
+            </a>
+          </div>
+          <div class="text-muted">{{ consumo.cliente.codigo }}</div>
+        </div>
+        <div class="col-md-3">
+          <div class="small text-muted fw-semibold">Data</div>
+          <div>{{ consumo.data|date:"d/m/Y" }}</div>
+          <div class="text-muted small">{{ consumo.hora|time:"H:i" }}</div>
+        </div>
+        <div class="col-md-3">
+          <div class="small text-muted fw-semibold">Status</div>
+          {% if consumo.faturado %}
+            <span class="badge bg-success">Faturado</span>
+          {% else %}
+            <span class="badge bg-warning text-dark">Pendente fatura</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Itens -->
+      <table class="table mb-0">
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th class="text-center">Qtd</th>
+            <th class="text-end">Unit.</th>
+            <th class="text-end">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in consumo.itens.all %}
+          <tr>
+            <td>{{ item.produto.nome }}</td>
+            <td class="text-center">{{ item.quantidade }}</td>
+            <td class="text-end">R$ {{ item.valor_unitario|floatformat:2 }}</td>
+            <td class="text-end fw-semibold">R$ {{ item.subtotal|floatformat:2 }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr class="table-light">
+            <td colspan="3" class="fw-bold text-end">TOTAL</td>
+            <td class="fw-bold text-end text-primary fs-6">R$ {{ consumo.valor_total|floatformat:2 }}</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      {% if consumo.observacao %}
+      <div class="mt-3 pt-3 border-top">
+        <div class="small text-muted fw-semibold">Observação</div>
+        <div class="text-muted">{{ consumo.observacao }}</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="table-card p-3">
+      <h6 class="fw-bold mb-3">Informações</h6>
+      <div class="mb-2">
+        <div class="small text-muted">Registrado por</div>
+        <div>{{ consumo.usuario.nome_completo|default:consumo.usuario.username }}</div>
+      </div>
+      <div class="mb-2">
+        <div class="small text-muted">Data/hora do registro</div>
+        <div>{{ consumo.created_at|date:"d/m/Y \à\s H:i" }}</div>
+      </div>
+      <div>
+        <div class="small text-muted">ID do consumo</div>
+        <div><code style="font-size:0.75rem;">{{ consumo.id }}</code></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

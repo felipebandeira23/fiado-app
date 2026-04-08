@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard – App de Fiado{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-speedometer2 me-2"></i>Dashboard</h1>
+  <span class="text-muted small">Bem-vindo, {{ user.nome_completo|default:user.username }}!</span>
+</div>
+
+<!-- Cards de resumo -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-card bg-white">
+      <div class="stat-icon" style="background:#e8f4fd; color:#2E75B6;">
+        <i class="bi bi-people"></i>
+      </div>
+      <div>
+        <div class="stat-value text-primary">{{ total_clientes }}</div>
+        <div class="stat-label">Total de clientes</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card bg-white">
+      <div class="stat-icon" style="background:#e8f8ee; color:#198754;">
+        <i class="bi bi-person-check"></i>
+      </div>
+      <div>
+        <div class="stat-value text-success">{{ ativos }}</div>
+        <div class="stat-label">Clientes ativos</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card bg-white">
+      <div class="stat-icon" style="background:#fff3cd; color:#fd7e14;">
+        <i class="bi bi-exclamation-triangle"></i>
+      </div>
+      <div>
+        <div class="stat-value text-warning">{{ inadimplentes }}</div>
+        <div class="stat-label">Inadimplentes</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card bg-white">
+      <div class="stat-icon" style="background:#fdecea; color:#dc3545;">
+        <i class="bi bi-person-x"></i>
+      </div>
+      <div>
+        <div class="stat-value text-danger">{{ bloqueados }}</div>
+        <div class="stat-label">Bloqueados</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Últimos clientes cadastrados -->
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="table-card">
+      <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
+        <h6 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2 text-primary"></i>Últimos clientes cadastrados</h6>
+        <a href="{% url 'clientes:lista' %}" class="btn btn-sm btn-outline-primary">Ver todos</a>
+      </div>
+      {% if ultimos %}
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Nome</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in ultimos %}
+          <tr>
+            <td><code>{{ c.codigo }}</code></td>
+            <td>{{ c.nome }}</td>
+            <td>
+              {% if c.status == 'ativo' %}<span class="badge bg-success">Ativo</span>
+              {% elif c.status == 'bloqueado' %}<span class="badge bg-danger">Bloqueado</span>
+              {% else %}<span class="badge bg-warning text-dark">Inadimplente</span>{% endif %}
+            </td>
+            <td><a href="{% url 'clientes:detalhe' c.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="text-center text-muted py-4">
+        <i class="bi bi-people fs-2 d-block mb-2"></i>
+        Nenhum cliente cadastrado ainda.
+        <div class="mt-2"><a href="{% url 'clientes:novo' %}" class="btn btn-primary btn-sm">Cadastrar primeiro cliente</a></div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="table-card p-3">
+      <h6 class="fw-bold mb-3"><i class="bi bi-lightning-charge me-2 text-warning"></i>Ações rápidas</h6>
+      <div class="d-grid gap-2">
+        <a href="{% url 'clientes:novo' %}" class="btn btn-primary">
+          <i class="bi bi-person-plus me-2"></i>Novo cliente
+        </a>
+        <a href="{% url 'clientes:lista' %}" class="btn btn-outline-primary">
+          <i class="bi bi-search me-2"></i>Buscar cliente
+        </a>
+        {% if user.is_admin_sistema %}
+        <a href="{% url 'produtos:novo' %}" class="btn btn-outline-secondary">
+          <i class="bi bi-plus-circle me-2"></i>Novo produto
+        </a>
+        {% endif %}
+        <a href="#" class="btn btn-outline-secondary disabled">
+          <i class="bi bi-lightning-charge me-2"></i>Venda Rápida (Fase 2)
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

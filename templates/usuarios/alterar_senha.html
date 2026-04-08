@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}Alterar Senha – App de Fiado{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-shield-lock me-2"></i>Alterar Senha</h1>
+</div>
+<div class="form-card">
+  <form method="post">
+    {% csrf_token %}
+    {% crispy form %}
+    <button type="submit" class="btn btn-primary mt-3 px-4">
+      <i class="bi bi-check2 me-1"></i>Salvar nova senha
+    </button>
+  </form>
+</div>
+{% endblock %}
