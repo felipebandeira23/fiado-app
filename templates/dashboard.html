@@ -33,30 +33,30 @@
   </div>
   <div class="col-6 col-md-3">
     <div class="stat-card bg-white">
-      <div class="stat-icon" style="background:#fff3cd; color:#fd7e14;">
-        <i class="bi bi-exclamation-triangle"></i>
+      <div class="stat-icon" style="background:#fdecea; color:#dc3545;">
+        <i class="bi bi-cash-stack"></i>
       </div>
       <div>
-        <div class="stat-value text-warning">{{ inadimplentes }}</div>
-        <div class="stat-label">Inadimplentes</div>
+        <div class="stat-value text-danger">R$ {{ total_a_receber|floatformat:2 }}</div>
+        <div class="stat-label">A receber</div>
       </div>
     </div>
   </div>
   <div class="col-6 col-md-3">
     <div class="stat-card bg-white">
-      <div class="stat-icon" style="background:#fdecea; color:#dc3545;">
-        <i class="bi bi-person-x"></i>
+      <div class="stat-icon" style="background:#fff3cd; color:#fd7e14;">
+        <i class="bi bi-exclamation-triangle"></i>
       </div>
       <div>
-        <div class="stat-value text-danger">{{ bloqueados }}</div>
-        <div class="stat-label">Bloqueados</div>
+        <div class="stat-value text-warning">{{ faturas_vencidas }}</div>
+        <div class="stat-label">Faturas vencidas</div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Últimos clientes cadastrados -->
-<div class="row g-3">
+<div class="row g-3 mb-3">
+  <!-- Últimos clientes cadastrados -->
   <div class="col-lg-7">
     <div class="table-card">
       <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
@@ -105,19 +105,65 @@
         <a href="{% url 'clientes:novo' %}" class="btn btn-primary">
           <i class="bi bi-person-plus me-2"></i>Novo cliente
         </a>
-        <a href="{% url 'clientes:lista' %}" class="btn btn-outline-primary">
-          <i class="bi bi-search me-2"></i>Buscar cliente
+        <a href="{% url 'consumos:venda_rapida' %}" class="btn btn-outline-primary">
+          <i class="bi bi-lightning-charge me-2"></i>Venda Rápida
+        </a>
+        <a href="{% url 'faturas:lista' %}" class="btn btn-outline-secondary">
+          <i class="bi bi-file-earmark-text me-2"></i>Ver Faturas
+        </a>
+        <a href="{% url 'faturas:fechar_mes' %}" class="btn btn-outline-secondary">
+          <i class="bi bi-calendar-check me-2"></i>Fechar Mês
         </a>
         {% if user.is_admin_sistema %}
         <a href="{% url 'produtos:novo' %}" class="btn btn-outline-secondary">
           <i class="bi bi-plus-circle me-2"></i>Novo produto
         </a>
         {% endif %}
-        <a href="#" class="btn btn-outline-secondary disabled">
-          <i class="bi bi-lightning-charge me-2"></i>Venda Rápida (Fase 2)
-        </a>
       </div>
     </div>
   </div>
 </div>
+
+<!-- Últimas faturas -->
+{% if ultimas_faturas %}
+<div class="table-card">
+  <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
+    <h6 class="mb-0 fw-bold"><i class="bi bi-file-earmark-text me-2 text-danger"></i>Últimas faturas</h6>
+    <a href="{% url 'faturas:lista' %}" class="btn btn-sm btn-outline-primary">Ver todas</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>Período</th>
+          <th class="text-end">Total</th>
+          <th class="text-end">Restante</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for fatura in ultimas_faturas %}
+        <tr>
+          <td>{{ fatura.cliente.nome }}</td>
+          <td>{{ fatura.mes|stringformat:"02d" }}/{{ fatura.ano }}</td>
+          <td class="text-end">R$ {{ fatura.valor_total|floatformat:2 }}</td>
+          <td class="text-end {% if fatura.valor_restante > 0 %}text-danger{% else %}text-success{% endif %}">
+            R$ {{ fatura.valor_restante|floatformat:2 }}
+          </td>
+          <td>
+            {% if fatura.status == 'paga' %}<span class="badge bg-success">Paga</span>
+            {% elif fatura.status == 'vencida' %}<span class="badge bg-danger">Vencida</span>
+            {% elif fatura.status == 'fechada' %}<span class="badge bg-warning text-dark">Fechada</span>
+            {% else %}<span class="badge bg-secondary">Aberta</span>{% endif %}
+          </td>
+          <td><a href="{% url 'faturas:detalhe' fatura.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
 {% endblock %}

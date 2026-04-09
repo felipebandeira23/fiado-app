@@ -25,7 +25,14 @@ class Consumo(models.Model):
     )
     observacao = models.TextField('Observação', blank=True)
     faturado = models.BooleanField('Faturado', default=False)
-    # fatura será preenchido na Fase 3
+    fatura = models.ForeignKey(
+        'faturas.FaturaMensal',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='consumos',
+        verbose_name='Fatura',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

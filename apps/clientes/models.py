@@ -70,11 +70,12 @@ class Cliente(models.Model):
 
     @property
     def saldo_devedor_total(self):
-        """Soma de todas as faturas em aberto do cliente."""
-        from django.db.models import Sum
-        # Será implementado na Fase 3 com o app faturas
-        # Por ora retorna 0
-        return 0
+        """Soma do restante de todas as faturas não pagas do cliente."""
+        from apps.faturas.models import FaturaMensal
+        faturas = FaturaMensal.objects.filter(cliente=self).exclude(
+            status=FaturaMensal.STATUS_PAGA
+        )
+        return sum(f.valor_restante for f in faturas)
 
     @property
     def status_badge(self):

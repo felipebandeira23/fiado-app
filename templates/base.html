@@ -44,19 +44,16 @@
     <a href="{% url 'consumos:lista' %}" class="nav-link {% if request.resolver_match.url_name == 'lista' and request.resolver_match.app_name == 'consumos' %}active{% endif %}">
       <i class="bi bi-clock-history"></i> Consumos
     </a>
-    <a href="#" class="nav-link disabled text-muted">
+    <a href="{% url 'faturas:lista' %}" class="nav-link {% if request.resolver_match.app_name == 'faturas' %}active{% endif %}">
       <i class="bi bi-file-earmark-text"></i> Faturas
-      <span class="badge bg-secondary ms-auto">Fase 3</span>
     </a>
-    <a href="#" class="nav-link disabled text-muted">
-      <i class="bi bi-cash-coin"></i> Pagamentos
-      <span class="badge bg-secondary ms-auto">Fase 3</span>
+    <a href="{% url 'faturas:fechar_mes' %}" class="nav-link {% if request.resolver_match.url_name == 'fechar_mes' %}active{% endif %}">
+      <i class="bi bi-cash-coin"></i> Fechar Mês
     </a>
 
     <div class="nav-section mt-2">GESTÃO</div>
-    <a href="#" class="nav-link disabled text-muted">
+    <a href="{% url 'faturas:relatorios' %}" class="nav-link {% if request.resolver_match.url_name == 'relatorios' %}active{% endif %}">
       <i class="bi bi-graph-up"></i> Relatórios
-      <span class="badge bg-secondary ms-auto">Fase 4</span>
     </a>
     {% if user.is_admin_sistema %}
     <a href="{% url 'usuarios:lista' %}" class="nav-link {% if request.resolver_match.app_name == 'usuarios' %}active{% endif %}">

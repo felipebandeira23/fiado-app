@@ -9,3 +9,5 @@ crispy-bootstrap5==2024.2
 django-filter==24.3
 gunicorn==22.0.0
 reportlab==4.2.2
+django-storages[s3]==1.14.6
+boto3==1.42.86

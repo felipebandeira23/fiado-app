@@ -16,17 +16,31 @@ from .forms import ClienteForm
 
 @login_required
 def dashboard(request):
+    from django.db.models import Sum, F, ExpressionWrapper, DecimalField
+    from apps.faturas.models import FaturaMensal
+
     total_clientes = Cliente.objects.count()
     ativos = Cliente.objects.filter(status='ativo').count()
     bloqueados = Cliente.objects.filter(status='bloqueado').count()
     inadimplentes = Cliente.objects.filter(status='inadimplente').count()
     ultimos = Cliente.objects.order_by('-created_at')[:5]
+
+    restante_expr = ExpressionWrapper(F('valor_total') - F('valor_pago'), output_field=DecimalField())
+    total_a_receber = FaturaMensal.objects.exclude(
+        status=FaturaMensal.STATUS_PAGA
+    ).annotate(restante=restante_expr).aggregate(soma=Sum('restante'))['soma'] or 0
+    faturas_vencidas = FaturaMensal.objects.filter(status=FaturaMensal.STATUS_VENCIDA).count()
+    ultimas_faturas = FaturaMensal.objects.select_related('cliente').order_by('-created_at')[:5]
+
     return render(request, 'dashboard.html', {
         'total_clientes': total_clientes,
         'ativos': ativos,
         'bloqueados': bloqueados,
         'inadimplentes': inadimplentes,
         'ultimos': ultimos,
+        'total_a_receber': total_a_receber,
+        'faturas_vencidas': faturas_vencidas,
+        'ultimas_faturas': ultimas_faturas,
     })
 
 
@@ -72,8 +86,10 @@ def novo_cliente(request):
 
 @login_required
 def detalhe_cliente(request, pk):
+    from apps.faturas.models import FaturaMensal
     cliente = get_object_or_404(Cliente, pk=pk)
-    return render(request, 'clientes/detalhe.html', {'cliente': cliente})
+    faturas = FaturaMensal.objects.filter(cliente=cliente).order_by('-ano', '-mes')[:12]
+    return render(request, 'clientes/detalhe.html', {'cliente': cliente, 'faturas': faturas})
 
 
 @login_required

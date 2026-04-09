@@ -1,0 +1,223 @@
+{% extends 'base.html' %}
+{% block title %}Fatura {{ fatura.mes|stringformat:"02d" }}/{{ fatura.ano }} – {{ fatura.cliente.nome }}{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex align-items-center justify-content-between">
+  <div>
+    <h1><i class="bi bi-file-earmark-text me-2"></i>Fatura {{ fatura.mes|stringformat:"02d" }}/{{ fatura.ano }}</h1>
+    <span class="text-muted">{{ fatura.cliente.nome }} · {{ fatura.cliente.codigo }}</span>
+  </div>
+  <a href="{% url 'faturas:lista' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Voltar
+  </a>
+</div>
+
+<!-- Status e resumo -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="stat-card bg-white">
+      <div class="stat-icon" style="background:#e8f4fd; color:#2E75B6;">
+        <i class="bi bi-cash-stack"></i>
+      </div>
+      <div>
+        <div class="stat-value text-primary">R$ {{ fatura.valor_total|floatformat:2 }}</div>
+        <div class="stat-label">Total da fatura</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card bg-white">
+      <div class="stat-icon" style="background:#e8f8ee; color:#198754;">
+        <i class="bi bi-check-circle"></i>
+      </div>
+      <div>
+        <div class="stat-value text-success">R$ {{ fatura.valor_pago|floatformat:2 }}</div>
+        <div class="stat-label">Total pago</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card bg-white">
+      <div class="stat-icon" style="background:#fdecea; color:#dc3545;">
+        <i class="bi bi-exclamation-circle"></i>
+      </div>
+      <div>
+        <div class="stat-value {% if fatura.valor_restante > 0 %}text-danger{% else %}text-success{% endif %}">
+          R$ {{ fatura.valor_restante|floatformat:2 }}
+        </div>
+        <div class="stat-label">Restante</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card bg-white">
+      <div class="stat-icon" style="background:#f8f0ff; color:#6f42c1;">
+        <i class="bi bi-tag"></i>
+      </div>
+      <div>
+        <div class="stat-value">
+          {% if fatura.status == 'paga' %}<span class="text-success">Paga</span>
+          {% elif fatura.status == 'vencida' %}<span class="text-danger">Vencida</span>
+          {% elif fatura.status == 'fechada' %}<span class="text-warning">Fechada</span>
+          {% else %}<span class="text-secondary">Aberta</span>{% endif %}
+        </div>
+        <div class="stat-label">Status</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- Consumos da fatura -->
+  <div class="col-lg-7">
+    <div class="table-card mb-3">
+      <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
+        <h6 class="mb-0 fw-bold"><i class="bi bi-list-ul me-2 text-primary"></i>Consumos ({{ consumos.count }})</h6>
+      </div>
+      {% if consumos %}
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Itens</th>
+              <th class="text-end">Valor</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for consumo in consumos %}
+            <tr>
+              <td>{{ consumo.data|date:"d/m/Y" }}</td>
+              <td>
+                {% for item in consumo.itens.all %}
+                  <small class="d-block">{{ item.produto.nome }} x{{ item.quantidade }}</small>
+                {% endfor %}
+              </td>
+              <td class="text-end fw-semibold">R$ {{ consumo.valor_total|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot class="table-light">
+            <tr>
+              <td colspan="2" class="fw-bold">Total</td>
+              <td class="text-end fw-bold">R$ {{ fatura.valor_total|floatformat:2 }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center text-muted py-3">
+        <small>Nenhum consumo vinculado a esta fatura.</small>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Info da fatura -->
+    <div class="table-card p-3">
+      <h6 class="fw-bold mb-3"><i class="bi bi-info-circle me-2 text-secondary"></i>Informações</h6>
+      <dl class="row mb-0">
+        <dt class="col-sm-5">Cliente</dt>
+        <dd class="col-sm-7">
+          <a href="{% url 'clientes:detalhe' fatura.cliente.pk %}">{{ fatura.cliente.nome }}</a>
+        </dd>
+        <dt class="col-sm-5">Período</dt>
+        <dd class="col-sm-7">{{ fatura.mes|stringformat:"02d" }}/{{ fatura.ano }}</dd>
+        {% if fatura.data_fechamento %}
+        <dt class="col-sm-5">Fechamento</dt>
+        <dd class="col-sm-7">{{ fatura.data_fechamento|date:"d/m/Y" }}</dd>
+        {% endif %}
+        {% if fatura.data_vencimento %}
+        <dt class="col-sm-5">Vencimento</dt>
+        <dd class="col-sm-7">{{ fatura.data_vencimento|date:"d/m/Y" }}</dd>
+        {% endif %}
+        {% if fatura.observacao %}
+        <dt class="col-sm-5">Observação</dt>
+        <dd class="col-sm-7">{{ fatura.observacao }}</dd>
+        {% endif %}
+      </dl>
+    </div>
+  </div>
+
+  <!-- Pagamentos -->
+  <div class="col-lg-5">
+    <!-- Registrar pagamento -->
+    {% if fatura.status != 'paga' %}
+    <div class="table-card p-3 mb-3">
+      <h6 class="fw-bold mb-3"><i class="bi bi-cash-coin me-2 text-success"></i>Registrar Pagamento</h6>
+      <form method="post" action="{% url 'faturas:pagamento' fatura.pk %}">
+        {% csrf_token %}
+        <div class="mb-2">
+          <label class="form-label small fw-semibold">Valor (R$)</label>
+          {{ form.valor }}
+          <div class="form-text">Restante: R$ {{ fatura.valor_restante|floatformat:2 }}</div>
+        </div>
+        <div class="mb-2">
+          <label class="form-label small fw-semibold">Forma de pagamento</label>
+          {{ form.forma_pagamento }}
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Observação</label>
+          {{ form.observacao }}
+        </div>
+        <button type="submit" class="btn btn-success w-100">
+          <i class="bi bi-check-circle me-1"></i>Confirmar Pagamento
+        </button>
+      </form>
+    </div>
+    {% else %}
+    <div class="alert alert-success d-flex align-items-center gap-2 mb-3">
+      <i class="bi bi-check-circle-fill fs-5"></i>
+      <div><strong>Fatura quitada!</strong> Esta fatura está totalmente paga.</div>
+    </div>
+    {% endif %}
+
+    <!-- Histórico de pagamentos -->
+    <div class="table-card">
+      <div class="px-3 py-2 border-bottom">
+        <h6 class="mb-0 fw-bold"><i class="bi bi-clock-history me-2 text-primary"></i>Histórico de Pagamentos</h6>
+      </div>
+      {% if pagamentos %}
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Forma</th>
+              <th class="text-end">Valor</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for pag in pagamentos %}
+            <tr>
+              <td>{{ pag.data|date:"d/m/Y" }}</td>
+              <td>
+                <span class="badge bg-light text-dark">{{ pag.get_forma_pagamento_display }}</span>
+              </td>
+              <td class="text-end text-success fw-semibold">R$ {{ pag.valor|floatformat:2 }}</td>
+            </tr>
+            {% if pag.observacao %}
+            <tr>
+              <td colspan="3" class="pt-0">
+                <small class="text-muted fst-italic ps-1">{{ pag.observacao }}</small>
+              </td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+          </tbody>
+          <tfoot class="table-light">
+            <tr>
+              <td colspan="2" class="fw-bold">Total pago</td>
+              <td class="text-end fw-bold text-success">R$ {{ fatura.valor_pago|floatformat:2 }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center text-muted py-3">
+        <small>Nenhum pagamento registrado ainda.</small>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

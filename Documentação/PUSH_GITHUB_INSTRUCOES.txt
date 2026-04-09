@@ -1,0 +1,120 @@
+═══════════════════════════════════════════════════════════════════════════════
+  INSTRUÇÕES PARA ENVIAR O PROJETO PARA O GITHUB
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ STATUS ATUAL:
+  • 65 arquivos prontos no Git
+  • 2 commits realizados:
+    1. feat: Fase 1 e 2 - Django App de Fiado
+    2. docs: Atualize README com informações da Fase 2
+
+═══════════════════════════════════════════════════════════════════════════════
+OPÇÃO RÁPIDA: EXECUTAR SCRIPT AUTOMÁTICO
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Abra PowerShell em: App de fiado\
+
+2. Execute:
+   .\push-to-github.ps1
+
+3. Siga as instruções na tela
+
+═══════════════════════════════════════════════════════════════════════════════
+OPÇÃO MANUAL: PASSO A PASSO
+═══════════════════════════════════════════════════════════════════════════════
+
+PASSO 1: CRIAR REPOSITÓRIO NO GITHUB
+────────────────────────────────────────────────────────────────────────────────
+1. Acesse: https://github.com/new
+2. Preencha:
+   • Repository name: fiado-app
+   • Description: Sistema de controle de clientes fiado para restaurante
+   • Visibility: Private (recomendado)
+3. Clique em "Create repository"
+4. COPIE a URL (terá o formato: https://github.com/seu_usuario/fiado-app.git)
+
+PASSO 2: CONFIGURAR GIT LOCALMENTE
+────────────────────────────────────────────────────────────────────────────────
+Abra PowerShell no diretório do projeto:
+
+  cd "caminho\até\App de fiado\fiado_app"
+
+Execute os comandos:
+
+  git remote add origin https://github.com/SEU_USUARIO/fiado-app.git
+  git branch -M main
+  git push -u origin main
+
+PASSO 3: AUTENTICAR
+────────────────────────────────────────────────────────────────────────────────
+Quando aparecer a janela de autenticação, VOCÊ TEM 2 OPÇÕES:
+
+OPÇÃO A: GitHub Personal Access Token (RECOMENDADO)
+─────────────────────────────────────────────────────
+1. Abra: https://github.com/settings/tokens
+2. Clique em "Generate new token" → "Generate new token (classic)"
+3. Preencha:
+   • Note: "Git Push from Local Machine"
+   • Selecione: ✓ repo, ✓ workflow
+4. Gere o token
+5. COPIE o token gerado
+6. No PowerShell, na solicitação de "Password", COLE O TOKEN
+
+OPÇÃO B: GitHub CLI
+─────────────────────────────────────────────────────
+Se tiver GitHub CLI instalado:
+
+  gh auth login
+  # Siga as instruções na tela
+
+═══════════════════════════════════════════════════════════════════════════════
+VERIFICAÇÃO
+═══════════════════════════════════════════════════════════════════════════════
+
+Após o push, execute:
+
+  git remote -v
+  # Deve mostrar origin com sua URL
+
+  git log --oneline -2
+  # Deve mostrar seus 2 commits
+
+Acesse seu repositório em:
+  https://github.com/seu_usuario/fiado-app
+
+═══════════════════════════════════════════════════════════════════════════════
+PRÓXIMAS ETAPAS
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ Após fazer o push para GitHub:
+
+1. Configure GitHub Secrets para variáveis sensíveis:
+   • Settings → Secrets and variables → Actions
+   • Adicione: DATABASE_URL, SECRET_KEY, etc
+
+2. (Opcional) Configure GitHub Actions para CI/CD
+
+3. Crie Releases para cada fase:
+   • v1.0-Phase1: Foundation (Clientes, Produtos, Usuários)
+   • v1.1-Phase2: Venda Rápida (QR Code, Carrinho)
+
+4. Próximas etapas de desenvolvimento:
+   • Fase 3: Faturas mensais + Pagamentos
+   • Fase 4: Relatórios + Auditoria
+
+═══════════════════════════════════════════════════════════════════════════════
+DÚVIDAS?
+═══════════════════════════════════════════════════════════════════════════════
+
+Erro de autenticação?
+  → Use um Personal Access Token (não sua senha)
+  → Token deve ter escopos: repo, workflow
+
+Repositório não existe?
+  → Verifique se criou em: https://github.com/new
+
+Erro de permissão?
+  → Confirme que você tem permissão no repositório
+  → Tente fazer push para main (não master)
+
+═══════════════════════════════════════════════════════════════════════════════

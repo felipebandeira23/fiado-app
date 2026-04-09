@@ -27,11 +27,13 @@ INSTALLED_APPS = [
     'crispy_forms',
     'crispy_bootstrap5',
     'django_filters',
+    'storages',
     # Apps do projeto
     'apps.usuarios',
     'apps.clientes',
     'apps.produtos',
     'apps.consumos',
+    'apps.faturas',
 ]
 
 MIDDLEWARE = [
@@ -94,9 +96,39 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Arquivos de mídia (fotos dos clientes)
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+# ── Arquivos de mídia ────────────────────────────────────────────────────────
+#
+# Em desenvolvimento (sem SUPABASE_S3_KEY_ID): salva em disco local.
+# Em produção (com SUPABASE_S3_KEY_ID definida): usa Supabase Storage via S3.
+#
+# Para configurar no Supabase:
+#   1. Supabase Dashboard → Storage → Create bucket "media" (Public)
+#   2. Storage → S3 Access Keys → Create new key
+#   3. Copie Access Key ID e Secret para as variáveis de ambiente abaixo
+#
+_SUPABASE_S3_KEY_ID = env('SUPABASE_S3_KEY_ID', default='')
+
+if _SUPABASE_S3_KEY_ID:
+    # ── Produção: Supabase Storage ──
+    AWS_ACCESS_KEY_ID = _SUPABASE_S3_KEY_ID
+    AWS_SECRET_ACCESS_KEY = env('SUPABASE_S3_SECRET')
+    AWS_STORAGE_BUCKET_NAME = env('SUPABASE_S3_BUCKET', default='media')
+    AWS_S3_ENDPOINT_URL = env('SUPABASE_S3_ENDPOINT')
+    AWS_S3_REGION_NAME = 'us-east-1'  # Supabase exige us-east-1 independente da região real
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_DEFAULT_ACL = None            # ACL gerenciada pelas RLS policies do Supabase
+    AWS_QUERYSTRING_AUTH = False      # URLs públicas sem assinatura
+
+    # Domínio público do bucket: <project-ref>.supabase.co/storage/v1/object/public/<bucket>
+    AWS_S3_CUSTOM_DOMAIN = env('SUPABASE_S3_PUBLIC_DOMAIN')
+
+    DEFAULT_FILE_STORAGE = 'fiado_project.storage_backends.SupabaseMediaStorage'
+    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
+    MEDIA_ROOT = ''  # Não usado em produção
+else:
+    # ── Desenvolvimento: disco local ──
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

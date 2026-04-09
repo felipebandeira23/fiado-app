@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+{% block title %}Relatórios – App de Fiado{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1><i class="bi bi-graph-up me-2"></i>Relatórios</h1>
+</div>
+
+<!-- Cards de resumo geral -->
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="stat-card bg-white">
+      <div class="stat-icon" style="background:#e8f4fd; color:#2E75B6;">
+        <i class="bi bi-file-earmark-text"></i>
+      </div>
+      <div>
+        <div class="stat-value text-primary">R$ {{ total_faturado|floatformat:2 }}</div>
+        <div class="stat-label">Total faturado (histórico)</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card bg-white">
+      <div class="stat-icon" style="background:#e8f8ee; color:#198754;">
+        <i class="bi bi-check-circle"></i>
+      </div>
+      <div>
+        <div class="stat-value text-success">R$ {{ total_recebido|floatformat:2 }}</div>
+        <div class="stat-label">Total recebido</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card bg-white">
+      <div class="stat-icon" style="background:#fdecea; color:#dc3545;">
+        <i class="bi bi-exclamation-circle"></i>
+      </div>
+      <div>
+        <div class="stat-value text-danger">R$ {{ total_em_aberto|floatformat:2 }}</div>
+        <div class="stat-label">Em aberto (a receber)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <!-- Receita por mês -->
+  <div class="col-lg-7">
+    <div class="table-card">
+      <div class="px-3 py-2 border-bottom">
+        <h6 class="mb-0 fw-bold"><i class="bi bi-calendar3 me-2 text-primary"></i>Receita por Mês (últimos 12)</h6>
+      </div>
+      {% if receita_por_mes %}
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Período</th>
+              <th class="text-end">Faturado</th>
+              <th class="text-end">Recebido</th>
+              <th class="text-end">Pendente</th>
+              <th>Eficiência</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in receita_por_mes %}
+            {% with pendente=row.faturado|add:"-"|add:row.recebido %}
+            <tr>
+              <td class="fw-semibold">{{ row.mes|stringformat:"02d" }}/{{ row.ano }}</td>
+              <td class="text-end">R$ {{ row.faturado|floatformat:2 }}</td>
+              <td class="text-end text-success">R$ {{ row.recebido|floatformat:2 }}</td>
+              <td class="text-end text-danger">R$ {{ row.faturado|add:"-0"|floatformat:2 }}</td>
+              <td>
+                {% if row.faturado %}
+                  {% widthratio row.recebido row.faturado 100 as pct %}
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="progress flex-grow-1" style="height:6px;">
+                      <div class="progress-bar {% if pct >= 90 %}bg-success{% elif pct >= 60 %}bg-warning{% else %}bg-danger{% endif %}"
+                           style="width:{{ pct }}%"></div>
+                    </div>
+                    <small class="text-muted">{{ pct }}%</small>
+                  </div>
+                {% else %}—{% endif %}
+              </td>
+            </tr>
+            {% endwith %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center text-muted py-4">
+        <small>Nenhuma fatura registrada ainda.</small>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Ranking de clientes -->
+  <div class="col-lg-5">
+    <div class="table-card">
+      <div class="px-3 py-2 border-bottom">
+        <h6 class="mb-0 fw-bold"><i class="bi bi-trophy me-2 text-warning"></i>Top 10 Clientes por Consumo</h6>
+      </div>
+      {% if ranking_clientes %}
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Cliente</th>
+              <th class="text-end">Total</th>
+              <th class="text-end">Consumos</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for i, row in ranking_clientes|enumerate %}
+            {% endfor %}
+            {% for row in ranking_clientes %}
+            <tr>
+              <td class="text-muted fw-bold">
+                {% if forloop.counter == 1 %}<i class="bi bi-trophy-fill text-warning"></i>
+                {% elif forloop.counter == 2 %}<i class="bi bi-trophy-fill text-secondary"></i>
+                {% elif forloop.counter == 3 %}<i class="bi bi-trophy-fill" style="color:#cd7f32"></i>
+                {% else %}{{ forloop.counter }}{% endif %}
+              </td>
+              <td>
+                <a href="{% url 'clientes:detalhe' row.cliente__id %}" class="text-decoration-none">
+                  {{ row.cliente__nome }}
+                </a>
+                <div class="text-muted small">{{ row.cliente__codigo }}</div>
+              </td>
+              <td class="text-end fw-bold text-primary">R$ {{ row.total_consumido|floatformat:2 }}</td>
+              <td class="text-end text-muted">{{ row.num_consumos }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center text-muted py-4">
+        <small>Nenhum consumo registrado ainda.</small>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Clientes inadimplentes -->
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="table-card">
+      <div class="px-3 py-2 border-bottom d-flex align-items-center justify-content-between">
+        <h6 class="mb-0 fw-bold"><i class="bi bi-exclamation-triangle me-2 text-danger"></i>Clientes com Débito</h6>
+        <span class="badge bg-danger">{{ inadimplentes_com_saldo|length }}</span>
+      </div>
+      {% if inadimplentes_com_saldo %}
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>Status</th>
+              <th class="text-end">Saldo Devedor</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in inadimplentes_com_saldo %}
+            <tr>
+              <td>
+                <div class="fw-semibold">{{ item.cliente.nome }}</div>
+                <div class="text-muted small">{{ item.cliente.codigo }}</div>
+              </td>
+              <td>
+                {% if item.cliente.status == 'bloqueado' %}
+                  <span class="badge bg-danger">Bloqueado</span>
+                {% else %}
+                  <span class="badge bg-warning text-dark">Inadimplente</span>
+                {% endif %}
+              </td>
+              <td class="text-end fw-bold text-danger">R$ {{ item.saldo|floatformat:2 }}</td>
+              <td>
+                <a href="{% url 'clientes:detalhe' item.cliente.pk %}" class="btn btn-sm btn-outline-secondary">
+                  <i class="bi bi-eye"></i>
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center text-muted py-4">
+        <i class="bi bi-check-circle-fill text-success fs-2 d-block mb-2"></i>
+        <small>Nenhum cliente inadimplente.</small>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Faturas vencidas -->
+  <div class="col-lg-6">
+    <div class="table-card">
+      <div class="px-3 py-2 border-bottom d-flex align-items-center justify-content-between">
+        <h6 class="mb-0 fw-bold"><i class="bi bi-calendar-x me-2 text-warning"></i>Faturas Vencidas</h6>
+        <span class="badge bg-warning text-dark">{{ faturas_vencidas|length }}</span>
+      </div>
+      {% if faturas_vencidas %}
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>Período</th>
+              <th class="text-end">Restante</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for fatura in faturas_vencidas %}
+            <tr>
+              <td>{{ fatura.cliente.nome }}</td>
+              <td>{{ fatura.mes|stringformat:"02d" }}/{{ fatura.ano }}</td>
+              <td class="text-end fw-bold text-danger">R$ {{ fatura.restante|floatformat:2 }}</td>
+              <td>
+                <a href="{% url 'faturas:detalhe' fatura.pk %}" class="btn btn-sm btn-outline-danger">
+                  <i class="bi bi-cash-coin"></i>
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="text-center text-muted py-4">
+        <i class="bi bi-check-circle-fill text-success fs-2 d-block mb-2"></i>
+        <small>Nenhuma fatura vencida.</small>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

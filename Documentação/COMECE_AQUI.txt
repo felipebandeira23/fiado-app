@@ -1,0 +1,182 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║                  🎯 COMEÇAR A USAR CLAUDE CODE AGORA                       ║
+║                                                                            ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+
+📌 RESUMO RÁPIDO
+════════════════════════════════════════════════════════════════════════════
+
+Seu projeto Django está 80% pronto (Fase 1 & 2 completas).
+
+PRÓXIMA TAREFA: Implementar Fase 3 (Faturas + Pagamentos) usando Claude Code
+
+3 arquivos criados para ajudá-lo:
+  1. PROXIMOS_PASSOS.md ...................... Checklist completo
+  2. PROMPT_CLAUDE_CODE.md .................. Documentação técnica
+  3. PROMPT_RAPIDO_CLAUDE_CODE.txt ......... Copiar e colar
+
+
+🚀 INÍCIO RÁPIDO (2 MINUTOS)
+════════════════════════════════════════════════════════════════════════════
+
+1. Abra VS Code na pasta do projeto:
+
+   cd "App de fiado\fiado_app"
+   code .
+
+2. Abra o terminal integrado (Ctrl + `)
+
+3. Cole este comando:
+
+   claude --message "Vou implementar a Fase 3 (Faturas Mensais + Pagamentos) do meu projeto Django.
+   Por favor, leia o arquivo PROMPT_CLAUDE_CODE.md no projeto e use como referência para ajudar-me
+   a implementar: 1) Models (FaturaMensal, FaturaConsumo, Pagamento),
+   2) Views (lista_faturas, detalhe_fatura, registrar_pagamento, fechar_mes),
+   3) Templates (faturas/lista.html, faturas/detalhe.html), 4) URLs e 5) Dashboard update."
+
+   OU use:
+
+   claude
+
+
+✅ ANTES DE COMEÇAR: CHECKLIST
+════════════════════════════════════════════════════════════════════════════
+
+[ ] 1. Fazer push do projeto para GitHub
+      • Abra: https://github.com/new
+      • Crie repositório: "fiado-app"
+      • Volte aqui e execute:
+
+        git remote add origin https://github.com/SEU_USUARIO/fiado-app.git
+        git branch -M main
+        git push -u origin main
+
+      • Instrações detalhadas em: PUSH_GITHUB_INSTRUCOES.txt
+
+[ ] 2. Setup Local (se não tiver feito ainda)
+
+      python -m venv venv
+      venv\Scripts\activate
+      pip install -r requirements.txt
+      cp .env.example .env
+      # Configure DATABASE_URL do Supabase em .env
+
+      python manage.py migrate
+      python manage.py createsuperuser
+      python manage.py runserver
+
+[ ] 3. Testar Fase 1 & 2
+      • Acesse http://localhost:8000/login
+      • Login com superuser
+      • Crie um cliente
+      • Gere QR Code
+      • Teste Venda Rápida
+      • Registre um consumo
+
+[ ] 4. PRONTO PARA FASE 3!
+      • Abra VS Code
+      • Execute: claude
+      • Deixe Claude Code implementar
+
+
+📂 ARQUIVOS IMPORTANTES
+════════════════════════════════════════════════════════════════════════════
+
+PARA FASE 3 COM CLAUDE CODE:
+  └─ PROMPT_CLAUDE_CODE.md ................ [USAR ESTE COMO REFERÊNCIA]
+  └─ PROMPT_RAPIDO_CLAUDE_CODE.txt ....... [COPIAR E COLAR]
+
+PARA GITHUB:
+  └─ PUSH_GITHUB_INSTRUCOES.txt .......... [INSTRUÇÕES DETALHADAS]
+  └─ GITHUB_SETUP.md ..................... [DOCUMENTAÇÃO TÉCNICA]
+  └─ push-to-github.ps1 .................. [SCRIPT AUTOMÁTICO]
+
+RESUMOS:
+  └─ PROXIMOS_PASSOS.md .................. [FLUXO COMPLETO]
+  └─ README.md ........................... [PROJETO GERAL]
+
+
+🔧 COMANDOS ÚTEIS (COPIAR E COLAR)
+════════════════════════════════════════════════════════════════════════════
+
+# Abrir Claude Code
+claude
+
+# Com mensagem específica
+claude --message "Minha tarefa é..."
+
+# Criar novo modelo
+python manage.py makemigrations consumos
+
+# Rodar migrations
+python manage.py migrate
+
+# Servidor de desenvolvimento
+python manage.py runserver
+
+# Shell do Django (para testar)
+python manage.py shell
+
+# Ver logs do git
+git log --oneline -5
+
+# Fazer commit
+git add -A && git commit -m "feat: Implementação da Fase 3"
+
+# Push
+git push
+
+
+⚡ FLUXO RECOMENDADO
+════════════════════════════════════════════════════════════════════════════
+
+1️⃣  GITHUB (15 min)
+   └─ Crie repositório GitHub
+   └─ Execute: git remote add origin ... && git push
+
+2️⃣  LOCAL SETUP (5 min)
+   └─ python manage.py migrate
+   └─ python manage.py createsuperuser
+   └─ python manage.py runserver
+
+3️⃣  TESTE FASE 1 & 2 (10 min)
+   └─ Login no sistema
+   └─ Crie cliente + gere QR Code
+   └─ Teste Venda Rápida
+
+4️⃣  FASE 3 COM CLAUDE CODE (2-3 horas)
+   └─ cd "App de fiado\fiado_app"
+   └─ code .
+   └─ claude
+
+5️⃣  TESTE & DEPLOY (30 min)
+   └─ Teste faturas localmente
+   └─ git commit && git push
+   └─ Railway faz deploy automático
+
+
+❓ DÚVIDAS?
+════════════════════════════════════════════════════════════════════════════
+
+"Como começo?"
+→ Leia PROXIMOS_PASSOS.md
+
+"Qual prompt usar para Claude Code?"
+→ Use PROMPT_CLAUDE_CODE.md (completo) ou PROMPT_RAPIDO_CLAUDE_CODE.txt (rápido)
+
+"Como faço push para GitHub?"
+→ Siga PUSH_GITHUB_INSTRUCOES.txt
+
+"Algo deu errado"
+→ 1. Verifique .env (DATABASE_URL correto)
+   2. Rode: python manage.py migrate
+   3. Se persistir, mostre o erro para Claude Code
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+       🎯 PRÓXIMO PASSO: Abra VS Code e execute: claude
+
+═══════════════════════════════════════════════════════════════════════════════
