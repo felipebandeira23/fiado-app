@@ -80,9 +80,16 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'fiado_project.wsgi.application'
 
-# Banco de dados — Supabase PostgreSQL via DATABASE_URL
+# Banco de dados — variáveis individuais para evitar problemas de parsing de URL
 DATABASES = {
-    'default': env.db('DATABASE_URL')
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': env('DB_NAME', default='postgres'),
+        'USER': env('DB_USER', default='postgres'),
+        'PASSWORD': env('DB_PASSWORD', default=''),
+        'HOST': env('DB_HOST', default='localhost'),
+        'PORT': env('DB_PORT', default='5432'),
+    }
 }
 
 # Autenticação — usa nosso model customizado
