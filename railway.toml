@@ -2,7 +2,7 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "gunicorn fiado_project.wsgi --log-file -"
+startCommand = "gunicorn fiado_project.wsgi --workers 2 --timeout 120 --log-file -"
 healthcheckPath = "/login/"
 healthcheckTimeout = 300
 restartPolicyType = "on_failure"
