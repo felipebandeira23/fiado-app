@@ -19,6 +19,8 @@ if RAILWAY_HOST:
 # ── Segurança em produção ─────────────────────────────────────────────────────
 if not DEBUG:
     CSRF_TRUSTED_ORIGINS = [f'https://{RAILWAY_HOST}'] if RAILWAY_HOST else []
+    # Railway termina SSL no proxy — confiar no header X-Forwarded-Proto
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
