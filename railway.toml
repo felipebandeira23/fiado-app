@@ -3,6 +3,7 @@ builder = "nixpacks"
 
 [deploy]
 startCommand = "gunicorn fiado_project.wsgi --workers 2 --timeout 120 --log-file -"
+releaseCommand = "python manage.py collectstatic --no-input && python manage.py migrate"
 healthcheckPath = "/login/"
 healthcheckTimeout = 300
 restartPolicyType = "on_failure"
