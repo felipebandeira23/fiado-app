@@ -161,7 +161,8 @@ SESSION_COOKIE_AGE = 28800
 
 # ── E-mail ────────────────────────────────────────────────────────────────────
 # Em desenvolvimento: EMAIL_BACKEND=console (imprime no terminal).
-# Em produção: configure EMAIL_BACKEND=smtp e as variáveis SMTP abaixo.
+# Em produção: configure EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+# e as variáveis SMTP abaixo via variáveis de ambiente.
 EMAIL_BACKEND = env(
     'EMAIL_BACKEND',
     default='django.core.mail.backends.console.EmailBackend',
