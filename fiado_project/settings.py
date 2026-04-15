@@ -158,3 +158,30 @@ CRISPY_TEMPLATE_PACK = 'bootstrap5'
 
 # Sessão: expira em 8 horas (uso no turno do restaurante)
 SESSION_COOKIE_AGE = 28800
+
+# ── E-mail ────────────────────────────────────────────────────────────────────
+# Em desenvolvimento: EMAIL_BACKEND=console (imprime no terminal).
+# Em produção: configure EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+# e as variáveis SMTP abaixo via variáveis de ambiente.
+EMAIL_BACKEND = env(
+    'EMAIL_BACKEND',
+    default='django.core.mail.backends.console.EmailBackend',
+)
+EMAIL_HOST = env('EMAIL_HOST', default='smtp.gmail.com')
+EMAIL_PORT = env.int('EMAIL_PORT', default=587)
+EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='App de Fiado <noreply@fiadoapp.com>')
+
+# ── WhatsApp ──────────────────────────────────────────────────────────────────
+# Provedor: "zapi" | "twilio" | "" (vazio = desabilitado)
+WHATSAPP_PROVIDER = env('WHATSAPP_PROVIDER', default='')
+# Z-API
+ZAPI_INSTANCE_ID = env('ZAPI_INSTANCE_ID', default='')
+ZAPI_TOKEN = env('ZAPI_TOKEN', default='')
+ZAPI_CLIENT_TOKEN = env('ZAPI_CLIENT_TOKEN', default='')
+# Twilio
+TWILIO_ACCOUNT_SID = env('TWILIO_ACCOUNT_SID', default='')
+TWILIO_AUTH_TOKEN = env('TWILIO_AUTH_TOKEN', default='')
+TWILIO_FROM_NUMBER = env('TWILIO_FROM_NUMBER', default='')

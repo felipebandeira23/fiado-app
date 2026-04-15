@@ -117,3 +117,27 @@ class Pagamento(models.Model):
 
     def __str__(self):
         return f'Pagamento R$ {self.valor} – {self.fatura}'
+
+
+class AuditLog(models.Model):
+    """Registro de auditoria de ações críticas do sistema."""
+    id = models.BigAutoField(primary_key=True)
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='audit_logs',
+        verbose_name='Usuário',
+    )
+    acao = models.CharField('Ação', max_length=100)
+    descricao = models.TextField('Descrição')
+    data = models.DateTimeField('Data/Hora', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Log de Auditoria'
+        verbose_name_plural = 'Logs de Auditoria'
+        ordering = ['-data']
+
+    def __str__(self):
+        return f'{self.acao} — {self.usuario} — {self.data:%d/%m/%Y %H:%M}'

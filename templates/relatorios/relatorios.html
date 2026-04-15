@@ -2,8 +2,11 @@
 {% block title %}Relatórios – App de Fiado{% endblock %}
 
 {% block content %}
-<div class="page-header">
+<div class="page-header d-flex align-items-center justify-content-between">
   <h1><i class="bi bi-graph-up me-2"></i>Relatórios</h1>
+  <a href="{% url 'faturas:relatorio_pdf' %}" class="btn btn-outline-danger">
+    <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
+  </a>
 </div>
 
 <!-- Cards de resumo geral -->
@@ -43,12 +46,34 @@
   </div>
 </div>
 
+<!-- Gráficos -->
+{% if chart_labels != "[]" %}
 <div class="row g-3 mb-4">
-  <!-- Receita por mês -->
+  <div class="col-lg-8">
+    <div class="table-card p-3">
+      <h6 class="fw-bold mb-3"><i class="bi bi-bar-chart me-2 text-primary"></i>Receita por Mês (últimos 12)</h6>
+      <canvas id="receitaChart" height="120"></canvas>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="table-card p-3">
+      <h6 class="fw-bold mb-3"><i class="bi bi-pie-chart me-2 text-success"></i>Formas de Pagamento</h6>
+      {% if forma_labels != "[]" %}
+      <canvas id="formaChart" height="160"></canvas>
+      {% else %}
+      <div class="text-center text-muted py-4"><small>Nenhum pagamento registrado ainda.</small></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="row g-3 mb-4">
+  <!-- Receita por mês (tabela) -->
   <div class="col-lg-7">
     <div class="table-card">
       <div class="px-3 py-2 border-bottom">
-        <h6 class="mb-0 fw-bold"><i class="bi bi-calendar3 me-2 text-primary"></i>Receita por Mês (últimos 12)</h6>
+        <h6 class="mb-0 fw-bold"><i class="bi bi-calendar3 me-2 text-primary"></i>Receita por Mês (tabela)</h6>
       </div>
       {% if receita_por_mes %}
       <div class="table-responsive">
@@ -64,12 +89,11 @@
           </thead>
           <tbody>
             {% for row in receita_por_mes %}
-            {% with pendente=row.faturado|add:"-"|add:row.recebido %}
             <tr>
               <td class="fw-semibold">{{ row.mes|stringformat:"02d" }}/{{ row.ano }}</td>
               <td class="text-end">R$ {{ row.faturado|floatformat:2 }}</td>
               <td class="text-end text-success">R$ {{ row.recebido|floatformat:2 }}</td>
-              <td class="text-end text-danger">R$ {{ row.faturado|add:"-0"|floatformat:2 }}</td>
+              <td class="text-end text-danger">R$ {{ row.pendente|floatformat:2 }}</td>
               <td>
                 {% if row.faturado %}
                   {% widthratio row.recebido row.faturado 100 as pct %}
@@ -83,7 +107,6 @@
                 {% else %}—{% endif %}
               </td>
             </tr>
-            {% endwith %}
             {% endfor %}
           </tbody>
         </table>
@@ -114,8 +137,6 @@
             </tr>
           </thead>
           <tbody>
-            {% for i, row in ranking_clientes|enumerate %}
-            {% endfor %}
             {% for row in ranking_clientes %}
             <tr>
               <td class="text-muted fw-bold">
@@ -242,4 +263,94 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{% if chart_labels != "[]" %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+  function formatCurrency(value) {
+    return 'R$ ' + value.toFixed(2).replace('.', ',');
+  }
+
+  // Gráfico de barras — receita por mês
+  const receitaCtx = document.getElementById('receitaChart');
+  if (receitaCtx) {
+    new Chart(receitaCtx, {
+      type: 'bar',
+      data: {
+        labels: {{ chart_labels }},
+        datasets: [
+          {
+            label: 'Faturado',
+            data: {{ chart_faturado }},
+            backgroundColor: 'rgba(46, 117, 182, 0.7)',
+            borderColor: 'rgba(46, 117, 182, 1)',
+            borderWidth: 1,
+          },
+          {
+            label: 'Recebido',
+            data: {{ chart_recebido }},
+            backgroundColor: 'rgba(25, 135, 84, 0.7)',
+            borderColor: 'rgba(25, 135, 84, 1)',
+            borderWidth: 1,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: 'top' },
+          tooltip: {
+            callbacks: {
+              label: ctx => formatCurrency(ctx.parsed.y)
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: val => `R$ ${val.toFixed(0)}`
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Gráfico de pizza — formas de pagamento
+  {% if forma_labels != "[]" %}
+  const formaCtx = document.getElementById('formaChart');
+  if (formaCtx) {
+    new Chart(formaCtx, {
+      type: 'doughnut',
+      data: {
+        labels: {{ forma_labels }},
+        datasets: [{
+          data: {{ forma_valores }},
+          backgroundColor: [
+            'rgba(25, 135, 84, 0.8)',
+            'rgba(46, 117, 182, 0.8)',
+            'rgba(255, 193, 7, 0.8)',
+            'rgba(220, 53, 69, 0.8)',
+          ],
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: 'bottom' },
+          tooltip: {
+            callbacks: {
+              label: ctx => ' ' + formatCurrency(ctx.parsed)
+            }
+          }
+        }
+      }
+    });
+  }
+  {% endif %}
+</script>
+{% endif %}
 {% endblock %}
