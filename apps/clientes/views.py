@@ -2,6 +2,7 @@ import qrcode
 import json
 from io import BytesIO
 from django.core.files import File
+from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
@@ -62,8 +63,16 @@ def lista_clientes(request):
     if status:
         qs = qs.filter(status=status)
 
+    paginator = Paginator(qs, 25)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    query_params = request.GET.copy()
+    query_params.pop('page', None)
+
     return render(request, 'clientes/lista.html', {
-        'clientes': qs,
+        'clientes': page_obj,
+        'page_obj': page_obj,
+        'current_query_string': query_params.urlencode(),
         'q': q,
         'status_filtro': status,
         'status_choices': Cliente.STATUS_CHOICES,

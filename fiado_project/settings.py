@@ -158,3 +158,17 @@ CRISPY_TEMPLATE_PACK = 'bootstrap5'
 
 # Sessão: expira em 8 horas (uso no turno do restaurante)
 SESSION_COOKIE_AGE = 28800
+
+# ── E-mail ────────────────────────────────────────────────────────────────────
+# Em desenvolvimento: EMAIL_BACKEND=console (imprime no terminal).
+# Em produção: configure EMAIL_BACKEND=smtp e as variáveis SMTP abaixo.
+EMAIL_BACKEND = env(
+    'EMAIL_BACKEND',
+    default='django.core.mail.backends.console.EmailBackend',
+)
+EMAIL_HOST = env('EMAIL_HOST', default='smtp.gmail.com')
+EMAIL_PORT = env.int('EMAIL_PORT', default=587)
+EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='App de Fiado <noreply@fiadoapp.com>')

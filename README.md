@@ -56,8 +56,12 @@ SECRET_KEY=gere-uma-chave-longa-aleatoria
 DEBUG=True
 ALLOWED_HOSTS=localhost,127.0.0.1
 
-# Supabase PostgreSQL
-DATABASE_URL=postgresql://postgres:[SENHA]@db.[PROJETO].supabase.co:5432/postgres
+# Banco de dados (variáveis individuais)
+DB_NAME=postgres
+DB_USER=postgres
+DB_PASSWORD=SUA_SENHA
+DB_HOST=db.SEU_PROJETO.supabase.co
+DB_PORT=5432
 
 # Supabase Storage — deixe em branco para usar disco local em desenvolvimento
 SUPABASE_S3_KEY_ID=
@@ -65,10 +69,20 @@ SUPABASE_S3_SECRET=
 SUPABASE_S3_BUCKET=media
 SUPABASE_S3_ENDPOINT=https://[PROJECT_REF].supabase.co/storage/v1/s3
 SUPABASE_S3_PUBLIC_DOMAIN=[PROJECT_REF].supabase.co/storage/v1/object/public/media
+
+# E-mail (opcional — para recuperação de senha)
+# Em desenvolvimento, EMAIL_BACKEND=console imprime o e-mail no terminal.
+EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=seu@email.com
+EMAIL_HOST_PASSWORD=sua-senha-de-app
+DEFAULT_FROM_EMAIL=App de Fiado <noreply@fiadoapp.com>
 ```
 
-> **Como obter a DATABASE_URL do Supabase:**
-> Supabase Dashboard → Project Settings → Database → Connection String (URI)
+> **Como obter as credenciais do Supabase:**
+> Supabase Dashboard → Project Settings → Database → Connection Parameters
 
 ### 4. Criar tabelas e superusuário
 
@@ -101,12 +115,24 @@ No painel do Railway → **Variables**, adicione:
 ```
 SECRET_KEY               = <chave-secreta-forte>
 DEBUG                    = False
-DATABASE_URL             = <connection-string-do-supabase>
+DB_NAME                  = postgres
+DB_USER                  = postgres
+DB_PASSWORD              = <senha-do-banco>
+DB_HOST                  = db.<seu-projeto>.supabase.co
+DB_PORT                  = 5432
 SUPABASE_S3_KEY_ID       = <access-key-id-do-supabase-storage>
 SUPABASE_S3_SECRET       = <secret-key-do-supabase-storage>
 SUPABASE_S3_BUCKET       = media
 SUPABASE_S3_ENDPOINT     = https://<project-ref>.supabase.co/storage/v1/s3
 SUPABASE_S3_PUBLIC_DOMAIN = <project-ref>.supabase.co/storage/v1/object/public/media
+# (opcional) Para envio de e-mail de recuperação de senha:
+EMAIL_BACKEND            = django.core.mail.backends.smtp.EmailBackend
+EMAIL_HOST               = smtp.gmail.com
+EMAIL_PORT               = 587
+EMAIL_USE_TLS            = True
+EMAIL_HOST_USER          = seu@email.com
+EMAIL_HOST_PASSWORD      = <senha-de-app-gmail>
+DEFAULT_FROM_EMAIL       = App de Fiado <noreply@fiadoapp.com>
 ```
 
 > **Como configurar o Supabase Storage:**
@@ -157,6 +183,7 @@ fiado_app/
 - ✅ **Fase 2** — Venda Rápida, leitura de QR Code por webcam e scanner USB
 - ✅ **Fase 3** — Faturas mensais, registro de pagamentos (parcial/total)
 - ✅ **Fase 4** — Relatórios financeiros, inadimplência automática, storage em produção
+- ✅ **Fase 5** — PDF de faturas e relatórios, paginação, auditoria, recuperação de senha, gráficos Chart.js
 
 ---
 

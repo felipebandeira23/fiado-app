@@ -7,9 +7,14 @@
     <h1><i class="bi bi-file-earmark-text me-2"></i>Fatura {{ fatura.mes|stringformat:"02d" }}/{{ fatura.ano }}</h1>
     <span class="text-muted">{{ fatura.cliente.nome }} · {{ fatura.cliente.codigo }}</span>
   </div>
-  <a href="{% url 'faturas:lista' %}" class="btn btn-outline-secondary">
-    <i class="bi bi-arrow-left me-1"></i>Voltar
-  </a>
+  <div class="d-flex gap-2">
+    <a href="{% url 'faturas:fatura_pdf' fatura.pk %}" class="btn btn-outline-danger" title="Baixar PDF">
+      <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+    </a>
+    <a href="{% url 'faturas:lista' %}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>Voltar
+    </a>
+  </div>
 </div>
 
 <!-- Status e resumo -->

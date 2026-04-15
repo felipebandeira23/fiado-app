@@ -1,5 +1,6 @@
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_GET, require_POST
@@ -15,8 +16,17 @@ def lista_produtos(request):
         qs = qs.filter(categoria__icontains=categoria)
 
     categorias = Produto.objects.values_list('categoria', flat=True).distinct().exclude(categoria='')
+
+    paginator = Paginator(qs, 30)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    query_params = request.GET.copy()
+    query_params.pop('page', None)
+
     return render(request, 'produtos/lista.html', {
-        'produtos': qs,
+        'produtos': page_obj,
+        'page_obj': page_obj,
+        'current_query_string': query_params.urlencode(),
         'categorias': categorias,
         'categoria_filtro': categoria,
     })

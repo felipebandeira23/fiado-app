@@ -99,5 +99,5 @@
   {% endif %}
 </div>
 
-<div class="text-muted small mt-2">{{ clientes|length }} cliente(s) encontrado(s)</div>
+{% include 'partials/pagination.html' %}
 {% endblock %}

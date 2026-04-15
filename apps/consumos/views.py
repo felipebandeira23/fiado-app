@@ -2,6 +2,7 @@ import json
 from decimal import Decimal
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
@@ -135,8 +136,11 @@ def api_salvar_consumo(request):
 
 @login_required
 def lista_consumos(request):
-    """Histórico geral de consumos com filtro por cliente."""
+    """Histórico geral de consumos com filtros por cliente e período."""
     cliente_id = request.GET.get('cliente_id', '')
+    data_de = request.GET.get('data_de', '')
+    data_ate = request.GET.get('data_ate', '')
+
     consumos = Consumo.objects.select_related('cliente', 'usuario').prefetch_related('itens')
 
     cliente = None
@@ -147,10 +151,24 @@ def lista_consumos(request):
         except (Cliente.DoesNotExist, Exception):
             pass
 
-    consumos = consumos[:100]  # Limitar para performance
+    if data_de:
+        consumos = consumos.filter(data__gte=data_de)
+    if data_ate:
+        consumos = consumos.filter(data__lte=data_ate)
+
+    paginator = Paginator(consumos, 30)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    query_params = request.GET.copy()
+    query_params.pop('page', None)
+
     return render(request, 'consumos/lista.html', {
-        'consumos': consumos,
+        'consumos': page_obj,
+        'page_obj': page_obj,
+        'current_query_string': query_params.urlencode(),
         'cliente': cliente,
+        'data_de': data_de,
+        'data_ate': data_ate,
     })
 
 
