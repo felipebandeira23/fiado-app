@@ -201,4 +201,7 @@ python manage.py migrate
 
 # Coletar arquivos estáticos (para deploy)
 python manage.py collectstatic
+
+# Rodar testes automatizados (usa SQLite in-memory, sem precisar de PostgreSQL)
+python manage.py test --settings=fiado_project.settings_test apps.faturas.tests --verbosity=2
 ```

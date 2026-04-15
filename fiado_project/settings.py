@@ -172,3 +172,15 @@ EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
 EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='App de Fiado <noreply@fiadoapp.com>')
+
+# ── WhatsApp ──────────────────────────────────────────────────────────────────
+# Provedor: "zapi" | "twilio" | "" (vazio = desabilitado)
+WHATSAPP_PROVIDER = env('WHATSAPP_PROVIDER', default='')
+# Z-API
+ZAPI_INSTANCE_ID = env('ZAPI_INSTANCE_ID', default='')
+ZAPI_TOKEN = env('ZAPI_TOKEN', default='')
+ZAPI_CLIENT_TOKEN = env('ZAPI_CLIENT_TOKEN', default='')
+# Twilio
+TWILIO_ACCOUNT_SID = env('TWILIO_ACCOUNT_SID', default='')
+TWILIO_AUTH_TOKEN = env('TWILIO_AUTH_TOKEN', default='')
+TWILIO_FROM_NUMBER = env('TWILIO_FROM_NUMBER', default='')

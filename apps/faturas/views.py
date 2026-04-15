@@ -16,6 +16,7 @@ from apps.clientes.models import Cliente
 from apps.consumos.models import Consumo
 from .models import FaturaMensal, Pagamento, AuditLog
 from .forms import PagamentoForm, FecharMesForm
+from .whatsapp import enviar_notificacao_fatura_fechada
 
 
 def _registrar_auditoria(usuario, acao, descricao):
@@ -200,6 +201,9 @@ def fechar_mes(request):
                     # Vincular consumos à fatura e marcar como faturados
                     consumos_cliente.update(fatura=fatura, faturado=True)
                     fatura.recalcular_total()
+
+                    # Notificar cliente via WhatsApp
+                    enviar_notificacao_fatura_fechada(fatura)
 
             msg_parts = []
             if faturas_criadas:
