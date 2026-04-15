@@ -246,15 +246,15 @@ def relatorios(request):
         .order_by('-ano', '-mes')[:12]
     )
     receita_por_mes = [
-        {**row, 'pendente': row['faturado'] - row['recebido']}
+        {**row, 'pendente': (row['faturado'] or 0) - (row['recebido'] or 0)}
         for row in receita_por_mes_qs
     ]
 
     # Dados para gráfico de receita (ordem cronológica — mês mais antigo primeiro)
     receita_cronologica = list(reversed(receita_por_mes))
     chart_labels = json.dumps([f'{r["mes"]:02d}/{r["ano"]}' for r in receita_cronologica])
-    chart_faturado = json.dumps([float(r['faturado']) for r in receita_cronologica])
-    chart_recebido = json.dumps([float(r['recebido']) for r in receita_cronologica])
+    chart_faturado = json.dumps([float(r['faturado'] or 0) for r in receita_cronologica])
+    chart_recebido = json.dumps([float(r['recebido'] or 0) for r in receita_cronologica])
 
     # Dados para gráfico de formas de pagamento
     pagamentos_por_forma = (
@@ -267,7 +267,7 @@ def relatorios(request):
         dict(Pagamento.FORMA_CHOICES).get(p['forma_pagamento'], p['forma_pagamento'])
         for p in pagamentos_por_forma
     ])
-    forma_valores = json.dumps([float(p['total']) for p in pagamentos_por_forma])
+    forma_valores = json.dumps([float(p['total'] or 0) for p in pagamentos_por_forma])
 
     # Clientes inadimplentes com saldo
     inadimplentes = (
