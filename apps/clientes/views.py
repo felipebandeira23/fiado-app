@@ -194,6 +194,13 @@ def api_busca_clientes(request):
     return JsonResponse(data, safe=False)
 
 
+# ─── Healthcheck ──────────────────────────────────────────────────────────────
+
+def healthcheck(request):
+    """Public endpoint used by Railway to verify the app is running."""
+    return JsonResponse({'status': 'ok'})
+
+
 # ─── Utilitários ──────────────────────────────────────────────────────────────
 
 def _gerar_qrcode(cliente):
