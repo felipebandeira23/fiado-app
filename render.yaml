@@ -3,6 +3,7 @@ services:
     name: fiado-app
     runtime: python
     buildCommand: ./build.sh
+    preDeployCommand: python manage.py migrate --no-input && python manage.py create_superuser_auto
     startCommand: gunicorn fiado_project.wsgi:application --workers 2 --timeout 120 --log-file -
     envVars:
       - key: PYTHON_VERSION
