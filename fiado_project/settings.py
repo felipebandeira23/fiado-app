@@ -11,14 +11,14 @@ SECRET_KEY = env('SECRET_KEY')
 DEBUG = env('DEBUG')
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
 
-# Railway injeta automaticamente a variável RAILWAY_PUBLIC_DOMAIN
-RAILWAY_HOST = os.environ.get('RAILWAY_PUBLIC_DOMAIN')
-if RAILWAY_HOST:
-    ALLOWED_HOSTS.append(RAILWAY_HOST)
+# Render injeta automaticamente a variável RENDER_EXTERNAL_HOSTNAME
+RENDER_HOST = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_HOST:
+    ALLOWED_HOSTS.append(RENDER_HOST)
 
 _trusted = []
-if RAILWAY_HOST:
-    _trusted.append(f'https://{RAILWAY_HOST}')
+if RENDER_HOST:
+    _trusted.append(f'https://{RENDER_HOST}')
 # Permitir domínios customizados via variável de ambiente
 _extra_origins = env('CSRF_TRUSTED_ORIGINS', default='')
 if _extra_origins:
@@ -27,7 +27,7 @@ CSRF_TRUSTED_ORIGINS = _trusted
 
 # ── Segurança em produção ─────────────────────────────────────────────────────
 if not DEBUG:
-    # Railway termina SSL no proxy — confiar no header X-Forwarded-Proto
+    # Render termina SSL no proxy — confiar no header X-Forwarded-Proto
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
@@ -88,22 +88,32 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'fiado_project.wsgi.application'
 
-# Banco de dados — variáveis individuais
-_db_host = env('DB_HOST', default='localhost')
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env('DB_NAME', default='postgres'),
-        'USER': env('DB_USER', default='postgres'),
-        'PASSWORD': env('DB_PASSWORD', default=''),
-        'HOST': _db_host,
-        'PORT': env('DB_PORT', default='5432'),
-        'OPTIONS': {
-            'sslmode': 'require',
-        } if _db_host and _db_host not in ('localhost', '127.0.0.1') else {},
-        'CONN_MAX_AGE': 60,
+# Banco de dados — DATABASE_URL (Render/Neon) ou variáveis individuais (local)
+DATABASE_URL = env('DATABASE_URL', default='')
+if DATABASE_URL:
+    DATABASES = {
+        'default': env.db()
     }
-}
+    # Garantir SSL para conexões externas
+    DATABASES['default'].setdefault('OPTIONS', {})
+    DATABASES['default']['OPTIONS']['sslmode'] = 'require'
+    DATABASES['default']['CONN_MAX_AGE'] = 60
+else:
+    _db_host = env('DB_HOST', default='localhost')
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': env('DB_NAME', default='postgres'),
+            'USER': env('DB_USER', default='postgres'),
+            'PASSWORD': env('DB_PASSWORD', default=''),
+            'HOST': _db_host,
+            'PORT': env('DB_PORT', default='5432'),
+            'OPTIONS': {
+                'sslmode': 'require',
+            } if _db_host and _db_host not in ('localhost', '127.0.0.1') else {},
+            'CONN_MAX_AGE': 60,
+        }
+    }
 
 # Autenticação — usa nosso model customizado
 AUTH_USER_MODEL = 'usuarios.Usuario'

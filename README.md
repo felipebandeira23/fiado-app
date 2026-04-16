@@ -2,7 +2,7 @@
 
 Sistema completo para gerenciar clientes fiados em restaurantes e bares: cadastro de clientes com QR Code, registro de consumos, faturamento mensal, controle de pagamentos e relatórios financeiros.
 
-**Stack:** Django 4.2 · PostgreSQL (Supabase) · Bootstrap 5 · Deploy no Railway
+**Stack:** Django 4.2 · PostgreSQL (Supabase/Neon) · Bootstrap 5 · Deploy no Render
 
 ---
 
@@ -57,6 +57,7 @@ DEBUG=True
 ALLOWED_HOSTS=localhost,127.0.0.1
 
 # Banco de dados (variáveis individuais)
+DATABASE_URL=postgresql://user:password@host:5432/dbname?sslmode=require
 DB_NAME=postgres
 DB_USER=postgres
 DB_PASSWORD=SUA_SENHA
@@ -101,25 +102,23 @@ Acesse: http://localhost:8000
 
 ---
 
-## Deploy no Railway
+## Deploy no Render
 
-### 1. Criar o projeto no Railway
+### 1. Criar o projeto no Render
 
-- Acesse [railway.app](https://railway.app) e faça login com GitHub
-- **New Project → Deploy from GitHub repo** → selecione este repositório
+- Acesse [render.com](https://render.com) e faça login com GitHub
+- Clique em **New + → Blueprint** e selecione este repositório
+- O Render usará o `render.yaml` para criar o Web Service e o banco PostgreSQL
 
 ### 2. Configurar variáveis de ambiente
 
-No painel do Railway → **Variables**, adicione:
+No painel do Render → **Environment**, confirme/ajuste:
 
 ```
 SECRET_KEY               = <chave-secreta-forte>
 DEBUG                    = False
-DB_NAME                  = postgres
-DB_USER                  = postgres
-DB_PASSWORD              = <senha-do-banco>
-DB_HOST                  = db.<seu-projeto>.supabase.co
-DB_PORT                  = 5432
+ALLOWED_HOSTS            = .onrender.com
+DATABASE_URL             = <connectionString do Postgres>
 SUPABASE_S3_KEY_ID       = <access-key-id-do-supabase-storage>
 SUPABASE_S3_SECRET       = <secret-key-do-supabase-storage>
 SUPABASE_S3_BUCKET       = media
@@ -135,17 +134,21 @@ EMAIL_HOST_PASSWORD      = <senha-de-app-gmail>
 DEFAULT_FROM_EMAIL       = App de Fiado <noreply@fiadoapp.com>
 ```
 
+> **Banco gratuito sem expiração (recomendado):**
+> Você pode usar o web service no Render e conectar um PostgreSQL do [Neon](https://neon.tech) com `DATABASE_URL`.
+> O PostgreSQL free do Render expira em 30 dias.
+>
 > **Como configurar o Supabase Storage:**
 > 1. Supabase Dashboard → Storage → **New Bucket** → nome `media`, marcar como **Public**
 > 2. Storage → **S3 Access Keys** → New access key → copie o ID e Secret
 
 ### 3. Deploy automático
 
-O Railway detecta o `Procfile` e faz o deploy automaticamente. As migrações rodam via `release` no Procfile.
+O Render executa o build/start definidos no `render.yaml`. As migrações rodam no `build.sh`.
 
 ### 4. Cron job (verificar vencimentos diariamente)
 
-No Railway → seu projeto → **+ New → Cron Job**:
+No Render → **New + → Cron Job**:
 - **Command:** `python manage.py verificar_vencimentos`
 - **Schedule:** `0 6 * * *` (todo dia às 6h)
 
@@ -170,8 +173,9 @@ fiado_app/
 │   ├── settings.py         # Configurações Django
 │   └── storage_backends.py # Supabase Storage (S3)
 ├── requirements.txt
-├── Procfile                # Deploy Railway
-├── railway.toml
+├── Procfile                # Comando web alternativo
+├── render.yaml             # Blueprint de deploy no Render
+├── build.sh                # Build/migrate no Render
 └── .env.example
 ```
 
