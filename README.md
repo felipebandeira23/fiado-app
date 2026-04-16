@@ -93,6 +93,8 @@ DB_USER=fiado_user
 DB_PASSWORD=sua_senha_forte
 DB_HOST=localhost
 DB_PORT=5432
+# Opcional: URL completa do banco (sobrescreve DB_*)
+DATABASE_URL=
 
 EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
 EMAIL_HOST=smtp.gmail.com
@@ -162,21 +164,18 @@ Dentro dela:
 
 ### 2. Script de bootstrap
 
-Você pode usar um script como `deploy.sh` para automatizar:
+Use o script `deploy.sh` para automatizar bootstrap da aplicação:
 
 ```bash
-#!/usr/bin/env bash
-set -e
+chmod +x deploy.sh
+./deploy.sh
+```
 
-python3 -m venv venv
-source venv/bin/activate
+Se precisar automatizar também a preparação do servidor Ubuntu (pacotes + PostgreSQL), use:
 
-pip install --upgrade pip
-pip install -r requirements.txt
-
-python manage.py migrate --no-input
-python manage.py collectstatic --no-input
-python manage.py create_superuser_auto
+```bash
+chmod +x scripts/ubuntu/bootstrap.sh
+./scripts/ubuntu/bootstrap.sh
 ```
 
 ---
@@ -196,29 +195,10 @@ gunicorn fiado_project.wsgi:application --bind 0.0.0.0:8000 --workers 3
 
 Crie um serviço para manter o app ativo:
 
-```ini
-[Unit]
-Description=Fiado App Django Service
-After=network.target postgresql.service
-
-[Service]
-User=www-data
-Group=www-data
-WorkingDirectory=/var/www/fiado-app
-EnvironmentFile=/var/www/fiado-app/.env
-ExecStart=/var/www/fiado-app/venv/bin/gunicorn fiado_project.wsgi:application --bind 127.0.0.1:8000 --workers 3
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Ative com:
-
 ```bash
+sudo cp deploy/systemd/fiado-app.service /etc/systemd/system/fiado-app.service
 sudo systemctl daemon-reload
-sudo systemctl enable fiado-app
-sudo systemctl start fiado-app
+sudo systemctl enable --now fiado-app
 sudo systemctl status fiado-app
 ```
 
@@ -228,33 +208,9 @@ sudo systemctl status fiado-app
 
 Exemplo de reverse proxy:
 
-```nginx
-server {
-    listen 80;
-    server_name seu-dominio.com;
-
-    location /static/ {
-        alias /var/www/fiado-app/staticfiles/;
-    }
-
-    location /media/ {
-        alias /var/www/fiado-app/media/;
-    }
-
-    location / {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-Depois:
-
 ```bash
-sudo ln -s /etc/nginx/sites-available/fiado-app /etc/nginx/sites-enabled/
+sudo cp deploy/nginx/fiado-app.conf /etc/nginx/sites-available/fiado-app
+sudo ln -s /etc/nginx/sites-available/fiado-app /etc/nginx/sites-enabled/fiado-app
 sudo nginx -t
 sudo systemctl reload nginx
 ```
