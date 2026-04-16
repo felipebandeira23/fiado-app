@@ -14,7 +14,7 @@ class CreateSuperuserAutoCommandTests(TestCase):
             'DJANGO_SUPERUSER_USERNAME': 'admin_auto',
             'DJANGO_SUPERUSER_PASSWORD': 'senha-forte-123',
             'DJANGO_SUPERUSER_EMAIL': 'admin@example.com',
-        }, clear=False):
+        }, clear=True):
             call_command('create_superuser_auto', stdout=output)
 
         usuario = Usuario.objects.get(username='admin_auto')
@@ -33,18 +33,15 @@ class CreateSuperuserAutoCommandTests(TestCase):
             'DJANGO_SUPERUSER_USERNAME': 'admin_existente',
             'DJANGO_SUPERUSER_PASSWORD': 'senha-forte-123',
             'DJANGO_SUPERUSER_EMAIL': 'existente@example.com',
-        }, clear=False):
+        }, clear=True):
             call_command('create_superuser_auto', stdout=output)
 
         self.assertEqual(Usuario.objects.filter(username='admin_existente').count(), 1)
         self.assertIn('já existe', output.getvalue())
 
-    def test_pula_criacao_sem_username_ou_password(self):
+    def test_pula_criacao_quando_faltam_credenciais(self):
         output = StringIO()
-        with patch.dict('os.environ', {
-            'DJANGO_SUPERUSER_USERNAME': '',
-            'DJANGO_SUPERUSER_PASSWORD': '',
-        }, clear=False):
+        with patch.dict('os.environ', {}, clear=True):
             call_command('create_superuser_auto', stdout=output)
 
         self.assertEqual(Usuario.objects.count(), 0)

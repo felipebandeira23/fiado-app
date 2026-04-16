@@ -15,7 +15,7 @@ class Command(BaseCommand):
 
         if not username or not password:
             self.stdout.write(self.style.WARNING(
-                'DJANGO_SUPERUSER_USERNAME e/ou DJANGO_SUPERUSER_PASSWORD não definidos. '
+                'DJANGO_SUPERUSER_USERNAME ou DJANGO_SUPERUSER_PASSWORD não definidos. '
                 'Pulando criação do superusuário.'
             ))
             return
