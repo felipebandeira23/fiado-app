@@ -22,7 +22,7 @@ if RAILWAY_HOST:
 # Permitir domínios customizados via variável de ambiente
 _extra_origins = env('CSRF_TRUSTED_ORIGINS', default='')
 if _extra_origins:
-    _trusted.extend([o.strip() for o in _extra_origins.split(',')])
+    _trusted.extend([o.strip() for o in _extra_origins.split(',') if o.strip()])
 CSRF_TRUSTED_ORIGINS = _trusted
 
 # ── Segurança em produção ─────────────────────────────────────────────────────
@@ -100,7 +100,7 @@ DATABASES = {
         'PORT': env('DB_PORT', default='5432'),
         'OPTIONS': {
             'sslmode': 'require',
-        } if _db_host != 'localhost' and _db_host != '127.0.0.1' else {},
+        } if _db_host and _db_host not in ('localhost', '127.0.0.1') else {},
         'CONN_MAX_AGE': 60,
     }
 }
