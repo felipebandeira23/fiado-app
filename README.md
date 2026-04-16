@@ -145,6 +145,7 @@ DEFAULT_FROM_EMAIL       = App de Fiado <noreply@fiadoapp.com>
 ### 3. Deploy automático
 
 O Render executa o build/start definidos no `render.yaml`. As migrações rodam no `build.sh`.
+Durante o build também é executado `python manage.py create_superuser_auto`, que garante um usuário padrão `admin`/`admin` quando ele ainda não existe (idempotente em redeploys).
 
 ### 4. Cron job (verificar vencimentos diariamente)
 
