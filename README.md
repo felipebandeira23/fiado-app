@@ -1,244 +1,311 @@
-# App de Fiado — Sistema de Controle de Crédito para Restaurante
+# Fiado App
 
-Sistema completo para gerenciar clientes fiados em restaurantes e bares: cadastro de clientes com QR Code, registro de consumos, faturamento mensal, controle de pagamentos e relatórios financeiros.
+Sistema web para controle de clientes, vendas fiado, faturas, pagamentos e relatórios.
 
-**Stack:** Django 4.2 · PostgreSQL · Bootstrap 5 · Deploy em Ubuntu Server
+## Tecnologias
 
----
-
-## Funcionalidades
-
-| Módulo | Descrição |
-|--------|-----------|
-| **Clientes** | Cadastro com foto, CPF, limite de crédito e QR Code individual |
-| **Venda Rápida** | Tela de atendimento no balcão — busca de cliente por QR Code ou nome |
-| **Consumos** | Registro de itens por produto com histórico completo |
-| **Faturas** | Fechamento mensal automático agrupando consumos por cliente |
-| **Pagamentos** | Registro parcial ou total com PIX, dinheiro ou cartão |
-| **Relatórios** | Receita por mês, ranking de clientes, inadimplência e faturas vencidas |
-| **Usuários** | Dois perfis: Administrador (acesso total) e Atendente (operação) |
+- Python 3.11+
+- Django 4.2+
+- PostgreSQL
+- Gunicorn
+- Nginx
+- WhiteNoise
+- Bootstrap 5
 
 ---
 
-## Instalação local
+## Requisitos no Ubuntu Server
 
-### 1. Clonar e criar ambiente virtual
+Instale os pacotes básicos:
 
 ```bash
-git clone <url-do-repositorio>
-cd fiado_app
+sudo apt update
+sudo apt install -y python3 python3-venv python3-pip postgresql postgresql-contrib nginx
+```
 
-# Windows
-python -m venv venv
-venv\Scripts\activate
+---
 
-# Linux / Mac
+## Configuração do PostgreSQL local
+
+Crie o banco e o usuário:
+
+```bash
+sudo -u postgres psql
+```
+
+No console do PostgreSQL:
+
+```sql
+CREATE DATABASE fiado_db;
+CREATE USER fiado_user WITH PASSWORD 'sua_senha_forte';
+ALTER ROLE fiado_user SET client_encoding TO 'utf8';
+ALTER ROLE fiado_user SET default_transaction_isolation TO 'read committed';
+ALTER ROLE fiado_user SET timezone TO 'America/Sao_Paulo';
+GRANT ALL PRIVILEGES ON DATABASE fiado_db TO fiado_user;
+\q
+```
+
+---
+
+## Instalação do projeto
+
+Clone o repositório:
+
+```bash
+git clone https://github.com/felipebandeira23/fiado-app.git
+cd fiado-app
+```
+
+Crie e ative o ambiente virtual:
+
+```bash
 python3 -m venv venv
 source venv/bin/activate
 ```
 
-### 2. Instalar dependências
+Instale as dependências:
 
 ```bash
+pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 3. Configurar variáveis de ambiente
+---
+
+## Arquivo `.env`
+
+Copie o arquivo de exemplo:
 
 ```bash
 cp .env.example .env
 ```
 
-Edite o `.env` com suas credenciais:
+Exemplo de configuração:
 
-```env
-SECRET_KEY=gere-uma-chave-longa-aleatoria
-DEBUG=True
-ALLOWED_HOSTS=localhost,127.0.0.1
+```dotenv
+SECRET_KEY=coloque-uma-chave-longa-e-secreta
+DEBUG=False
+ALLOWED_HOSTS=localhost,127.0.0.1,seu-dominio.com
+CSRF_TRUSTED_ORIGINS=https://seu-dominio.com
 
-# Banco de dados (localhost no Ubuntu Server)
-# Se DATABASE_URL for preenchida, ela tem prioridade
-DATABASE_URL=
-DB_NAME=fiado_app
-DB_USER=fiado_app
-DB_PASSWORD=SUA_SENHA_FORTE
+DB_NAME=fiado_db
+DB_USER=fiado_user
+DB_PASSWORD=sua_senha_forte
 DB_HOST=localhost
 DB_PORT=5432
 
-# Host externo opcional (domínio/IP público)
-EXTERNAL_HOSTNAME=
-
-# Supabase Storage — deixe em branco para usar disco local em desenvolvimento
-SUPABASE_S3_KEY_ID=
-SUPABASE_S3_SECRET=
-SUPABASE_S3_BUCKET=media
-SUPABASE_S3_ENDPOINT=https://[PROJECT_REF].supabase.co/storage/v1/s3
-SUPABASE_S3_PUBLIC_DOMAIN=[PROJECT_REF].supabase.co/storage/v1/object/public/media
-
-# E-mail (opcional — para recuperação de senha)
-# Em desenvolvimento, EMAIL_BACKEND=console imprime o e-mail no terminal.
 EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USE_TLS=True
-EMAIL_HOST_USER=seu@email.com
-EMAIL_HOST_PASSWORD=sua-senha-de-app
+EMAIL_HOST_USER=
+EMAIL_HOST_PASSWORD=
 DEFAULT_FROM_EMAIL=App de Fiado <noreply@fiadoapp.com>
-
-# Admin padrão criado automaticamente no bootstrap/start
-DEFAULT_ADMIN_USERNAME=admin
-DEFAULT_ADMIN_PASSWORD=admin
-DEFAULT_ADMIN_EMAIL=admin@fiado.app
 ```
 
-### 4. Criar tabelas e garantir admin padrão
+---
+
+## Migrações, arquivos estáticos e usuário admin
+
+Execute:
 
 ```bash
-python manage.py migrate
+python manage.py migrate --no-input
+python manage.py collectstatic --no-input
 python manage.py create_superuser_auto
 ```
 
-### 5. Rodar o servidor
+Esse último comando garante automaticamente a criação do usuário padrão:
 
-```bash
-python manage.py runserver
-```
+- login: `admin`
+- senha: `admin`
 
-Acesse: http://localhost:8000
+O comando é idempotente e pode ser executado várias vezes sem criar duplicados.
 
 ---
 
-## Deploy em Ubuntu Server (PostgreSQL local)
+## Rodando localmente
 
-### 1. Preparar variáveis de ambiente
-
-```bash
-cd /opt/fiado-app
-cp .env.example .env
-```
-
-No `.env`, configure principalmente:
-
-```env
-DEBUG=False
-ALLOWED_HOSTS=seu-dominio.com,IP_DO_SERVIDOR
-CSRF_TRUSTED_ORIGINS=https://seu-dominio.com
-DB_NAME=fiado_app
-DB_USER=fiado_app
-DB_PASSWORD=SUA_SENHA_FORTE
-DB_HOST=localhost
-DB_PORT=5432
-DEFAULT_ADMIN_USERNAME=admin
-DEFAULT_ADMIN_PASSWORD=admin
-DEFAULT_ADMIN_EMAIL=admin@fiado.app
-```
-
-### 2. Bootstrap (instala dependências + PostgreSQL + migrations + estáticos + seed admin)
+Para testes de desenvolvimento:
 
 ```bash
-cd /opt/fiado-app
-chmod +x scripts/ubuntu/bootstrap.sh scripts/ubuntu/start_gunicorn.sh
-./scripts/ubuntu/bootstrap.sh
+python manage.py runserver 0.0.0.0:8000
 ```
 
-O bootstrap é idempotente:
-- cria usuário/banco PostgreSQL local somente se não existirem;
-- aplica migrations;
-- roda `collectstatic`;
-- garante o usuário padrão `admin/admin` com o comando `create_superuser_auto`.
+Acesse:
 
-### 3. Configurar systemd (Gunicorn)
+```text
+http://localhost:8000
+```
+
+---
+
+## Deploy no Ubuntu Server
+
+### 1. Estrutura recomendada
+
+Exemplo:
+
+```text
+/var/www/fiado-app/
+```
+
+Dentro dela:
+
+- código-fonte
+- `.env`
+- `venv/`
+- `staticfiles/`
+- `media/`
+
+---
+
+### 2. Script de bootstrap
+
+Você pode usar um script como `deploy.sh` para automatizar:
 
 ```bash
-sudo cp deploy/systemd/fiado-app.service /etc/systemd/system/fiado-app.service
+#!/usr/bin/env bash
+set -e
+
+python3 -m venv venv
+source venv/bin/activate
+
+pip install --upgrade pip
+pip install -r requirements.txt
+
+python manage.py migrate --no-input
+python manage.py collectstatic --no-input
+python manage.py create_superuser_auto
+```
+
+---
+
+### 3. Gunicorn
+
+Instale e execute com Gunicorn:
+
+```bash
+pip install gunicorn
+gunicorn fiado_project.wsgi:application --bind 0.0.0.0:8000 --workers 3
+```
+
+---
+
+### 4. Serviço systemd
+
+Crie um serviço para manter o app ativo:
+
+```ini
+[Unit]
+Description=Fiado App Django Service
+After=network.target postgresql.service
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/fiado-app
+EnvironmentFile=/var/www/fiado-app/.env
+ExecStart=/var/www/fiado-app/venv/bin/gunicorn fiado_project.wsgi:application --bind 127.0.0.1:8000 --workers 3
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Ative com:
+
+```bash
 sudo systemctl daemon-reload
-sudo systemctl enable --now fiado-app
+sudo systemctl enable fiado-app
+sudo systemctl start fiado-app
 sudo systemctl status fiado-app
 ```
 
-### 4. Configurar Nginx (proxy reverso)
+---
+
+### 5. Configuração do Nginx
+
+Exemplo de reverse proxy:
+
+```nginx
+server {
+    listen 80;
+    server_name seu-dominio.com;
+
+    location /static/ {
+        alias /var/www/fiado-app/staticfiles/;
+    }
+
+    location /media/ {
+        alias /var/www/fiado-app/media/;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+Depois:
 
 ```bash
-sudo cp deploy/nginx/fiado-app.conf /etc/nginx/sites-available/fiado-app
-sudo ln -sf /etc/nginx/sites-available/fiado-app /etc/nginx/sites-enabled/fiado-app
+sudo ln -s /etc/nginx/sites-available/fiado-app /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
 ```
-
-### 5. Fluxo de deploy/restart
-
-Sempre que atualizar o código:
-
-```bash
-cd /opt/fiado-app
-source .venv/bin/activate
-pip install -r requirements.txt
-sudo systemctl restart fiado-app
-```
-
-O serviço executa automaticamente, nesta ordem: migrations → collectstatic → seed do admin → Gunicorn.
-
-## Deploy no Render (opcional/legado)
-
-Ainda existe suporte ao `render.yaml`, mas o fluxo principal documentado do projeto passa a ser Ubuntu Server com PostgreSQL local.
-
----
-
-## Estrutura do projeto
-
-```
-fiado_app/
-├── apps/
-│   ├── usuarios/           # Autenticação e perfis de acesso
-│   ├── clientes/           # Cadastro de clientes + QR Code
-│   ├── produtos/           # Catálogo de produtos
-│   ├── consumos/           # Registro de consumos (venda rápida)
-│   └── faturas/            # Faturas mensais, pagamentos e relatórios
-│       └── management/
-│           └── commands/
-│               └── verificar_vencimentos.py
-├── templates/              # Templates HTML (Bootstrap 5)
-├── static/css/             # CSS customizado
-├── fiado_project/
-│   ├── settings.py         # Configurações Django
-│   └── storage_backends.py # Supabase Storage (S3)
-├── scripts/ubuntu/         # Bootstrap e start para Ubuntu Server
-├── deploy/systemd/         # Exemplo de service do systemd
-├── deploy/nginx/           # Exemplo de configuração Nginx
-├── requirements.txt
-├── Procfile                # Comando web alternativo
-├── render.yaml             # Blueprint Render (opcional/legado)
-├── build.sh                # Build de dependências/estáticos
-└── .env.example
-```
-
----
-
-## Fases de desenvolvimento
-
-- ✅ **Fase 1** — Autenticação, Clientes, Produtos, QR Code
-- ✅ **Fase 2** — Venda Rápida, leitura de QR Code por webcam e scanner USB
-- ✅ **Fase 3** — Faturas mensais, registro de pagamentos (parcial/total)
-- ✅ **Fase 4** — Relatórios financeiros, inadimplência automática, storage em produção
-- ✅ **Fase 5** — PDF de faturas e relatórios, paginação, auditoria, recuperação de senha, gráficos Chart.js
 
 ---
 
 ## Comandos úteis
 
 ```bash
-# Verificar faturas vencidas e atualizar status dos clientes
-python manage.py verificar_vencimentos
-
-# Gerar migrations após alterar models
 python manage.py makemigrations
-
-# Aplicar migrations no banco
 python manage.py migrate
+python manage.py collectstatic --no-input
+python manage.py createsuperuser
+python manage.py create_superuser_auto
+python manage.py test
+```
 
-# Coletar arquivos estáticos (para deploy)
-python manage.py collectstatic
+---
 
-# Rodar testes automatizados (usa SQLite in-memory, sem precisar de PostgreSQL)
-python manage.py test --settings=fiado_project.settings_test apps.faturas.tests --verbosity=2
+## Usuário padrão
+
+Após o primeiro deploy local ou no Ubuntu Server, o sistema cria automaticamente:
+
+- usuário: `admin`
+- senha: `admin`
+
+Se o usuário já existir, o comando não cria duplicata.
+
+---
+
+## Observações
+
+- Para produção, use `DEBUG=False`
+- Configure `ALLOWED_HOSTS` corretamente
+- Use uma `SECRET_KEY` forte
+- Recomenda-se HTTPS com certificado válido
+- Se desejar, use `certbot` para habilitar SSL no Nginx
+
+---
+
+## Estrutura principal do projeto
+
+```text
+fiado_app/
+├── apps/
+├── templates/
+├── static/
+├── media/
+├── fiado_project/
+├── manage.py
+├── requirements.txt
+├── deploy.sh
+└── .env.example
 ```
