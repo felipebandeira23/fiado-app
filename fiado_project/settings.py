@@ -1,5 +1,4 @@
 import environ
-import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -10,22 +9,9 @@ if _env_file.is_file():
     environ.Env.read_env(_env_file)
 
 SECRET_KEY = env('SECRET_KEY')
-DEBUG = env('DEBUG')
+DEBUG = env.bool('DEBUG', default=False)
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
-
-# Host externo opcional para deploy em servidor com proxy reverso
-EXTERNAL_HOSTNAME = os.environ.get('EXTERNAL_HOSTNAME') or os.environ.get('RENDER_EXTERNAL_HOSTNAME')
-if EXTERNAL_HOSTNAME:
-    ALLOWED_HOSTS.append(EXTERNAL_HOSTNAME)
-
-_trusted = []
-if EXTERNAL_HOSTNAME:
-    _trusted.append(f'https://{EXTERNAL_HOSTNAME}')
-# Permitir domínios customizados via variável de ambiente
-_extra_origins = env('CSRF_TRUSTED_ORIGINS', default='')
-if _extra_origins:
-    _trusted.extend([o.strip() for o in _extra_origins.split(',') if o.strip()])
-CSRF_TRUSTED_ORIGINS = _trusted
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
 
 # ── Segurança em produção ─────────────────────────────────────────────────────
 if not DEBUG:
@@ -90,30 +76,33 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'fiado_project.wsgi.application'
 
-# Banco de dados — DATABASE_URL (Render/Neon) ou variáveis individuais (local)
+# Banco de dados — DATABASE_URL opcional, variáveis locais como padrão
 DATABASE_URL = env('DATABASE_URL', default='')
 if DATABASE_URL:
+    _database = env.db('DATABASE_URL')
+    _db_host = _database.get('HOST', '')
+    _database.setdefault('CONN_MAX_AGE', env.int('DB_CONN_MAX_AGE', default=60))
+    if _db_host and _db_host not in ('localhost', '127.0.0.1'):
+        _database.setdefault('OPTIONS', {})
+        _database['OPTIONS'].setdefault('sslmode', 'require')
     DATABASES = {
-        'default': env.db()
+        'default': _database
     }
-    # Garantir SSL para conexões externas
-    DATABASES['default'].setdefault('OPTIONS', {})
-    DATABASES['default']['OPTIONS']['sslmode'] = 'require'
-    DATABASES['default']['CONN_MAX_AGE'] = 60
 else:
     _db_host = env('DB_HOST', default='localhost')
+    _db_options = {}
+    if _db_host and _db_host not in ('localhost', '127.0.0.1'):
+        _db_options['sslmode'] = 'require'
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': env('DB_NAME', default='postgres'),
-            'USER': env('DB_USER', default='postgres'),
+            'NAME': env('DB_NAME', default='fiado_db'),
+            'USER': env('DB_USER', default='fiado_user'),
             'PASSWORD': env('DB_PASSWORD', default=''),
             'HOST': _db_host,
             'PORT': env('DB_PORT', default='5432'),
-            'OPTIONS': {
-                'sslmode': 'require',
-            } if _db_host and _db_host not in ('localhost', '127.0.0.1') else {},
-            'CONN_MAX_AGE': 60,
+            'OPTIONS': _db_options,
+            'CONN_MAX_AGE': env.int('DB_CONN_MAX_AGE', default=60),
         }
     }
 
