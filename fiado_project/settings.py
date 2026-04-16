@@ -13,14 +13,14 @@ SECRET_KEY = env('SECRET_KEY')
 DEBUG = env('DEBUG')
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
 
-# Render injeta automaticamente a variável RENDER_EXTERNAL_HOSTNAME
-RENDER_HOST = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
-if RENDER_HOST:
-    ALLOWED_HOSTS.append(RENDER_HOST)
+# Host externo opcional para deploy em servidor com proxy reverso
+EXTERNAL_HOSTNAME = os.environ.get('EXTERNAL_HOSTNAME') or os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(EXTERNAL_HOSTNAME)
 
 _trusted = []
-if RENDER_HOST:
-    _trusted.append(f'https://{RENDER_HOST}')
+if EXTERNAL_HOSTNAME:
+    _trusted.append(f'https://{EXTERNAL_HOSTNAME}')
 # Permitir domínios customizados via variável de ambiente
 _extra_origins = env('CSRF_TRUSTED_ORIGINS', default='')
 if _extra_origins:
@@ -29,7 +29,7 @@ CSRF_TRUSTED_ORIGINS = _trusted
 
 # ── Segurança em produção ─────────────────────────────────────────────────────
 if not DEBUG:
-    # Render termina SSL no proxy — confiar no header X-Forwarded-Proto
+    # SSL é finalizado no proxy (ex.: Nginx) — confiar no X-Forwarded-Proto
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True

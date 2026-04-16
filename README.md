@@ -2,7 +2,7 @@
 
 Sistema completo para gerenciar clientes fiados em restaurantes e bares: cadastro de clientes com QR Code, registro de consumos, faturamento mensal, controle de pagamentos e relatórios financeiros.
 
-**Stack:** Django 4.2 · PostgreSQL (Supabase/Neon) · Bootstrap 5 · Deploy no Render
+**Stack:** Django 4.2 · PostgreSQL · Bootstrap 5 · Deploy em Ubuntu Server
 
 ---
 
@@ -56,13 +56,17 @@ SECRET_KEY=gere-uma-chave-longa-aleatoria
 DEBUG=True
 ALLOWED_HOSTS=localhost,127.0.0.1
 
-# Banco de dados (variáveis individuais)
-DATABASE_URL=postgresql://user:password@host:5432/dbname?sslmode=require
-DB_NAME=postgres
-DB_USER=postgres
-DB_PASSWORD=SUA_SENHA
-DB_HOST=db.SEU_PROJETO.supabase.co
+# Banco de dados (localhost no Ubuntu Server)
+# Se DATABASE_URL for preenchida, ela tem prioridade
+DATABASE_URL=
+DB_NAME=fiado_app
+DB_USER=fiado_app
+DB_PASSWORD=SUA_SENHA_FORTE
+DB_HOST=localhost
 DB_PORT=5432
+
+# Host externo opcional (domínio/IP público)
+EXTERNAL_HOSTNAME=
 
 # Supabase Storage — deixe em branco para usar disco local em desenvolvimento
 SUPABASE_S3_KEY_ID=
@@ -80,16 +84,18 @@ EMAIL_USE_TLS=True
 EMAIL_HOST_USER=seu@email.com
 EMAIL_HOST_PASSWORD=sua-senha-de-app
 DEFAULT_FROM_EMAIL=App de Fiado <noreply@fiadoapp.com>
+
+# Admin padrão criado automaticamente no bootstrap/start
+DEFAULT_ADMIN_USERNAME=admin
+DEFAULT_ADMIN_PASSWORD=admin
+DEFAULT_ADMIN_EMAIL=admin@fiado.app
 ```
 
-> **Como obter as credenciais do Supabase:**
-> Supabase Dashboard → Project Settings → Database → Connection Parameters
-
-### 4. Criar tabelas e superusuário
+### 4. Criar tabelas e garantir admin padrão
 
 ```bash
 python manage.py migrate
-python manage.py createsuperuser
+python manage.py create_superuser_auto
 ```
 
 ### 5. Rodar o servidor
@@ -102,56 +108,79 @@ Acesse: http://localhost:8000
 
 ---
 
-## Deploy no Render
+## Deploy em Ubuntu Server (PostgreSQL local)
 
-### 1. Criar o projeto no Render
+### 1. Preparar variáveis de ambiente
 
-- Acesse [render.com](https://render.com) e faça login com GitHub
-- Clique em **New + → Blueprint** e selecione este repositório
-- O Render usará o `render.yaml` para criar o Web Service e o banco PostgreSQL
-
-### 2. Configurar variáveis de ambiente
-
-No painel do Render → **Environment**, confirme/ajuste:
-
-```
-SECRET_KEY               = <chave-secreta-forte>
-DEBUG                    = False
-ALLOWED_HOSTS            = .onrender.com
-DATABASE_URL             = <connectionString do Postgres>
-SUPABASE_S3_KEY_ID       = <access-key-id-do-supabase-storage>
-SUPABASE_S3_SECRET       = <secret-key-do-supabase-storage>
-SUPABASE_S3_BUCKET       = media
-SUPABASE_S3_ENDPOINT     = https://<project-ref>.supabase.co/storage/v1/s3
-SUPABASE_S3_PUBLIC_DOMAIN = <project-ref>.supabase.co/storage/v1/object/public/media
-# (opcional) Para envio de e-mail de recuperação de senha:
-EMAIL_BACKEND            = django.core.mail.backends.smtp.EmailBackend
-EMAIL_HOST               = smtp.gmail.com
-EMAIL_PORT               = 587
-EMAIL_USE_TLS            = True
-EMAIL_HOST_USER          = seu@email.com
-EMAIL_HOST_PASSWORD      = <senha-de-app-gmail>
-DEFAULT_FROM_EMAIL       = App de Fiado <noreply@fiadoapp.com>
+```bash
+cd /opt/fiado-app
+cp .env.example .env
 ```
 
-> **Banco gratuito sem expiração (recomendado):**
-> Você pode usar o web service no Render e conectar um PostgreSQL do [Neon](https://neon.tech) com `DATABASE_URL`.
-> O PostgreSQL free do Render expira em 30 dias.
->
-> **Como configurar o Supabase Storage:**
-> 1. Supabase Dashboard → Storage → **New Bucket** → nome `media`, marcar como **Public**
-> 2. Storage → **S3 Access Keys** → New access key → copie o ID e Secret
+No `.env`, configure principalmente:
 
-### 3. Deploy automático
+```env
+DEBUG=False
+ALLOWED_HOSTS=seu-dominio.com,IP_DO_SERVIDOR
+CSRF_TRUSTED_ORIGINS=https://seu-dominio.com
+DB_NAME=fiado_app
+DB_USER=fiado_app
+DB_PASSWORD=SUA_SENHA_FORTE
+DB_HOST=localhost
+DB_PORT=5432
+DEFAULT_ADMIN_USERNAME=admin
+DEFAULT_ADMIN_PASSWORD=admin
+DEFAULT_ADMIN_EMAIL=admin@fiado.app
+```
 
-O Render executa o build/start definidos no `render.yaml`.
-Antes de cada deploy, o `preDeployCommand` roda `python manage.py migrate --no-input && python manage.py create_superuser_auto`, garantindo um usuário padrão `admin`/`admin` quando ele ainda não existe (idempotente em redeploys) sem sobrescrever usuários já existentes.
+### 2. Bootstrap (instala dependências + PostgreSQL + migrations + estáticos + seed admin)
 
-### 4. Cron job (verificar vencimentos diariamente)
+```bash
+cd /opt/fiado-app
+chmod +x scripts/ubuntu/bootstrap.sh scripts/ubuntu/start_gunicorn.sh
+./scripts/ubuntu/bootstrap.sh
+```
 
-No Render → **New + → Cron Job**:
-- **Command:** `python manage.py verificar_vencimentos`
-- **Schedule:** `0 6 * * *` (todo dia às 6h)
+O bootstrap é idempotente:
+- cria usuário/banco PostgreSQL local somente se não existirem;
+- aplica migrations;
+- roda `collectstatic`;
+- garante o usuário padrão `admin/admin` com o comando `create_superuser_auto`.
+
+### 3. Configurar systemd (Gunicorn)
+
+```bash
+sudo cp deploy/systemd/fiado-app.service /etc/systemd/system/fiado-app.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now fiado-app
+sudo systemctl status fiado-app
+```
+
+### 4. Configurar Nginx (proxy reverso)
+
+```bash
+sudo cp deploy/nginx/fiado-app.conf /etc/nginx/sites-available/fiado-app
+sudo ln -sf /etc/nginx/sites-available/fiado-app /etc/nginx/sites-enabled/fiado-app
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+### 5. Fluxo de deploy/restart
+
+Sempre que atualizar o código:
+
+```bash
+cd /opt/fiado-app
+source .venv/bin/activate
+pip install -r requirements.txt
+sudo systemctl restart fiado-app
+```
+
+O serviço executa automaticamente, nesta ordem: migrations → collectstatic → seed do admin → Gunicorn.
+
+## Deploy no Render (opcional/legado)
+
+Ainda existe suporte ao `render.yaml`, mas o fluxo principal documentado do projeto passa a ser Ubuntu Server com PostgreSQL local.
 
 ---
 
@@ -173,10 +202,13 @@ fiado_app/
 ├── fiado_project/
 │   ├── settings.py         # Configurações Django
 │   └── storage_backends.py # Supabase Storage (S3)
+├── scripts/ubuntu/         # Bootstrap e start para Ubuntu Server
+├── deploy/systemd/         # Exemplo de service do systemd
+├── deploy/nginx/           # Exemplo de configuração Nginx
 ├── requirements.txt
 ├── Procfile                # Comando web alternativo
-├── render.yaml             # Blueprint de deploy no Render
-├── build.sh                # Build/migrate no Render
+├── render.yaml             # Blueprint Render (opcional/legado)
+├── build.sh                # Build de dependências/estáticos
 └── .env.example
 ```
 

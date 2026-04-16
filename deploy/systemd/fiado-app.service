@@ -1,0 +1,22 @@
+[Unit]
+Description=Fiado App Django (Gunicorn)
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/fiado-app
+EnvironmentFile=/opt/fiado-app/.env
+Environment=APP_DIR=/opt/fiado-app
+Environment=VENV_DIR=/opt/fiado-app/.venv
+ExecStart=/opt/fiado-app/scripts/ubuntu/start_gunicorn.sh
+Restart=always
+RestartSec=5
+KillSignal=SIGQUIT
+TimeoutStopSec=30
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
