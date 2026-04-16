@@ -16,9 +16,17 @@ RAILWAY_HOST = os.environ.get('RAILWAY_PUBLIC_DOMAIN')
 if RAILWAY_HOST:
     ALLOWED_HOSTS.append(RAILWAY_HOST)
 
+_trusted = []
+if RAILWAY_HOST:
+    _trusted.append(f'https://{RAILWAY_HOST}')
+# Permitir domínios customizados via variável de ambiente
+_extra_origins = env('CSRF_TRUSTED_ORIGINS', default='')
+if _extra_origins:
+    _trusted.extend([o.strip() for o in _extra_origins.split(',') if o.strip()])
+CSRF_TRUSTED_ORIGINS = _trusted
+
 # ── Segurança em produção ─────────────────────────────────────────────────────
 if not DEBUG:
-    CSRF_TRUSTED_ORIGINS = [f'https://{RAILWAY_HOST}'] if RAILWAY_HOST else []
     # Railway termina SSL no proxy — confiar no header X-Forwarded-Proto
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True
@@ -80,15 +88,20 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'fiado_project.wsgi.application'
 
-# Banco de dados — variáveis individuais para evitar problemas de parsing de URL
+# Banco de dados — variáveis individuais
+_db_host = env('DB_HOST', default='localhost')
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': env('DB_NAME', default='postgres'),
         'USER': env('DB_USER', default='postgres'),
         'PASSWORD': env('DB_PASSWORD', default=''),
-        'HOST': env('DB_HOST', default='localhost'),
+        'HOST': _db_host,
         'PORT': env('DB_PORT', default='5432'),
+        'OPTIONS': {
+            'sslmode': 'require',
+        } if _db_host and _db_host not in ('localhost', '127.0.0.1') else {},
+        'CONN_MAX_AGE': 60,
     }
 }
 
