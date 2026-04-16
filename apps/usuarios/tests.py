@@ -27,4 +27,6 @@ class CreateSuperuserAutoCommandTest(TestCase):
 
         call_command("create_superuser_auto")
 
+        admin = user_model.objects.get(username="admin")
         self.assertEqual(user_model.objects.filter(username="admin").count(), 1)
+        self.assertTrue(admin.check_password("senha-existente"))
