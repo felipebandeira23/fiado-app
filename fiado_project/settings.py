@@ -5,7 +5,9 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env(DEBUG=(bool, False))
-environ.Env.read_env(BASE_DIR / '.env')
+_env_file = BASE_DIR / '.env'
+if _env_file.is_file():
+    environ.Env.read_env(_env_file)
 
 SECRET_KEY = env('SECRET_KEY')
 DEBUG = env('DEBUG')
