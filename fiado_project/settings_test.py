@@ -7,9 +7,13 @@ rodar os testes sem conexão com banco externo.
 Uso:
     python manage.py test --settings=fiado_project.settings_test apps.faturas.tests
 """
+import os
+
+os.environ.setdefault("SECRET_KEY", "test-secret-key")
+os.environ.setdefault("DEBUG", "True")
+
 from .settings import *  # noqa: F401, F403
 
-DEBUG = True
 SECURE_SSL_REDIRECT = False
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False

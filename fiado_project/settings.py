@@ -8,7 +8,7 @@ _env_file = BASE_DIR / '.env'
 if _env_file.is_file():
     environ.Env.read_env(_env_file)
 
-SECRET_KEY = env('SECRET_KEY', default='change-me')
+SECRET_KEY = env('SECRET_KEY')
 DEBUG = env.bool('DEBUG', default=False)
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
 CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
@@ -89,14 +89,19 @@ if DATABASE_URL:
         'default': _database
     }
 else:
+    _db_host = env('DB_HOST', default='localhost')
+    _db_options = {}
+    if _db_host and _db_host not in ('localhost', '127.0.0.1'):
+        _db_options['sslmode'] = 'require'
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': env('DB_NAME', default='fiado_db'),
             'USER': env('DB_USER', default='fiado_user'),
             'PASSWORD': env('DB_PASSWORD', default=''),
-            'HOST': env('DB_HOST', default='localhost'),
+            'HOST': _db_host,
             'PORT': env('DB_PORT', default='5432'),
+            'OPTIONS': _db_options,
             'CONN_MAX_AGE': env.int('DB_CONN_MAX_AGE', default=60),
         }
     }

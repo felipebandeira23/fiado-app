@@ -15,8 +15,14 @@ source "$VENV_DIR/bin/activate"
 pip install --upgrade pip
 pip install -r requirements.txt
 
-if [ ! -f "$APP_DIR/.env" ] && [ -f "$APP_DIR/.env.example" ]; then
-  cp "$APP_DIR/.env.example" "$APP_DIR/.env"
+if [ ! -f "$APP_DIR/.env" ]; then
+  echo "Arquivo .env não encontrado. Copie .env.example para .env e ajuste os valores antes do deploy."
+  exit 1
+fi
+
+if ! grep -q '^SECRET_KEY=' "$APP_DIR/.env"; then
+  echo "SECRET_KEY não configurada no .env."
+  exit 1
 fi
 
 python manage.py migrate --no-input
