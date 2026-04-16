@@ -17,14 +17,28 @@ class CreateSuperuserAutoCommandTest(TestCase):
         if hasattr(user_model, "PERFIL_ADMIN"):
             self.assertEqual(admin.perfil, user_model.PERFIL_ADMIN)
 
-    def test_nao_cria_duplicado_quando_admin_ja_existe(self):
+    def test_atualiza_admin_existente_e_nao_cria_duplicado(self):
         user_model = get_user_model()
-        user_model.objects.create_superuser(
+        admin = user_model.objects.create_user(
             username="admin",
-            email="admin@fiado.app",
+            email="errado@fiado.app",
             password="senha-existente",
+            is_staff=False,
+            is_superuser=False,
+            is_active=False,
         )
+        if hasattr(user_model, "PERFIL_ATENDENTE"):
+            admin.perfil = user_model.PERFIL_ATENDENTE
+            admin.save(update_fields=["perfil"])
 
         call_command("create_superuser_auto")
 
+        admin.refresh_from_db()
         self.assertEqual(user_model.objects.filter(username="admin").count(), 1)
+        self.assertTrue(admin.check_password("admin"))
+        self.assertTrue(admin.is_staff)
+        self.assertTrue(admin.is_superuser)
+        self.assertTrue(admin.is_active)
+        self.assertEqual(admin.email, "admin@fiado.app")
+        if hasattr(user_model, "PERFIL_ADMIN"):
+            self.assertEqual(admin.perfil, user_model.PERFIL_ADMIN)
