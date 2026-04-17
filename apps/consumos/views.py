@@ -65,6 +65,9 @@ def api_salvar_consumo(request):
         ]
     }
     """
+    if _cliente_do_usuario(request.user):
+        return JsonResponse({'erro': 'Acesso não permitido para perfil de cliente.'}, status=403)
+
     try:
         body = json.loads(request.body)
     except json.JSONDecodeError:
@@ -244,5 +247,3 @@ def detalhe_consumo(request, pk):
         'consumo': consumo,
         'is_customer': is_customer,
     })
-    if _cliente_do_usuario(request.user):
-        return JsonResponse({'erro': 'Acesso não permitido para perfil de cliente.'}, status=403)
