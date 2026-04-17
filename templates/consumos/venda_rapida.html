@@ -256,10 +256,11 @@
 
         <div class="row g-2 mb-3">
           <div class="col-12 col-md-8">
-            <label class="form-label small fw-semibold">Adicionar valor avulso</label>
+            <label class="form-label small fw-semibold" for="valor-avulso-input">Adicionar valor avulso</label>
             <div class="input-group">
               <span class="input-group-text">R$</span>
               <input
+                id="valor-avulso-input"
                 type="text"
                 class="form-control"
                 placeholder="Ex.: 12,50"
@@ -614,17 +615,38 @@ function vendaRapida() {
     },
 
     adicionarValorAvulso() {
-      const valorTexto = (this.valorAvulso || '').trim().replace(',', '.');
-      const valor = Number.parseFloat(valorTexto);
+      let valorTexto = (this.valorAvulso || '').trim().replace(/\s+/g, '');
+      const totalVirgulas = (valorTexto.match(/,/g) || []).length;
+      const totalPontos = (valorTexto.match(/\./g) || []).length;
+
+      if (totalVirgulas > 1) {
+        this.showAlert('Informe um valor válido e maior que zero (ex.: 12,50).', 'warning');
+        return;
+      }
+
+      if (totalVirgulas === 1 && totalPontos > 0) {
+        // Formato 1.234,56
+        valorTexto = valorTexto.replace(/\./g, '').replace(',', '.');
+      } else if (totalVirgulas === 1) {
+        // Formato 12,50
+        valorTexto = valorTexto.replace(',', '.');
+      }
+
+      if (!/^\d+(\.\d{1,2})?$/.test(valorTexto)) {
+        this.showAlert('Informe um valor válido e maior que zero (ex.: 12,50).', 'warning');
+        return;
+      }
+
+      const valor = parseFloat(valorTexto);
 
       if (!Number.isFinite(valor) || valor <= 0) {
-        this.showAlert('Informe um valor avulso válido e maior que zero.', 'warning');
+        this.showAlert('Informe um valor válido e maior que zero (ex.: 12,50).', 'warning');
         return;
       }
 
       this.itemSeq += 1;
       this.carrinho.push({
-        item_id: `avulso-${Date.now()}-${this.itemSeq}`,
+        item_id: `avulso-${this.itemSeq}`,
         produto_id: null,
         nome: 'Item avulso',
         categoria: 'Valor livre',

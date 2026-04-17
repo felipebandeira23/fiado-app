@@ -1,28 +1,27 @@
 import json
 from decimal import Decimal
 
-from django.test import TestCase, Client as HttpClient
+from django.test import TestCase
 
 from apps.clientes.models import Cliente
 from apps.consumos.models import Consumo, ConsumoItem
-from apps.consumos.views import PRODUTO_ITEM_AVULSO_NOME
+from apps.consumos.views import SISTEMA_ITEM_AVULSO_NOME
 from apps.produtos.models import Produto
 from apps.usuarios.models import Usuario
 
 
 class ApiSalvarConsumoAvulsoTest(TestCase):
     def setUp(self):
-        self.http = HttpClient()
         self.usuario = Usuario.objects.create_user(
             username='atendente-avulso',
             password='senha123',
             perfil=Usuario.PERFIL_ATENDENTE,
         )
         self.cliente = Cliente.objects.create(nome='Cliente Avulso', telefone='11999990000')
-        self.http.force_login(self.usuario)
+        self.client.force_login(self.usuario)
 
     def post_json(self, payload):
-        return self.http.post(
+        return self.client.post(
             '/api/consumos/salvar/',
             data=json.dumps(payload),
             content_type='application/json',
@@ -42,7 +41,7 @@ class ApiSalvarConsumoAvulsoTest(TestCase):
         self.assertEqual(ConsumoItem.objects.count(), 1)
 
         item = ConsumoItem.objects.select_related('produto').first()
-        self.assertEqual(item.produto.nome, PRODUTO_ITEM_AVULSO_NOME)
+        self.assertEqual(item.produto.nome, SISTEMA_ITEM_AVULSO_NOME)
         self.assertEqual(item.valor_unitario, Decimal('12.50'))
         self.assertEqual(item.subtotal, Decimal('12.50'))
         self.assertFalse(item.produto.ativo)
@@ -56,7 +55,7 @@ class ApiSalvarConsumoAvulsoTest(TestCase):
         })
 
         self.assertEqual(response.status_code, 400)
-        self.assertIn('Valor avulso', response.json()['erro'])
+        self.assertEqual(response.json()['erro'], 'Valor avulso deve ser maior que zero.')
         self.assertEqual(Consumo.objects.count(), 0)
 
     def test_produto_normal_continua_usando_preco_do_cadastro(self):

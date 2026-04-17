@@ -12,16 +12,17 @@ from apps.clientes.models import Cliente
 from apps.produtos.models import Produto
 from .models import Consumo, ConsumoItem
 
-PRODUTO_ITEM_AVULSO_NOME = '[SISTEMA] Item avulso'
+SISTEMA_ITEM_AVULSO_NOME = '[SISTEMA] Item avulso'
+SISTEMA_ITEM_AVULSO_VALOR_PADRAO = Decimal('0.01')
 
 
 def _obter_produto_item_avulso():
     produto, _ = Produto.objects.get_or_create(
-        nome=PRODUTO_ITEM_AVULSO_NOME,
+        nome=SISTEMA_ITEM_AVULSO_NOME,
         defaults={
             'descricao': 'Produto reservado para lançamentos por valor livre na Venda Rápida.',
             'categoria': 'Sistema',
-            'valor_unitario': Decimal('0.01'),
+            'valor_unitario': SISTEMA_ITEM_AVULSO_VALOR_PADRAO,
             'ativo': False,
         },
     )
@@ -93,11 +94,15 @@ def api_salvar_consumo(request):
             return JsonResponse({'erro': 'Quantidade deve ser maior que zero.'}, status=400)
 
         produto_id = item.get('produto_id')
-        item_avulso = item.get('avulso') is True or not produto_id
+        item_avulso = item.get('avulso') is True
 
         if item_avulso:
+            valor_unit_raw = item.get('valor_unitario')
+            if valor_unit_raw in (None, ''):
+                return JsonResponse({'erro': 'Valor avulso é obrigatório.'}, status=400)
+
             try:
-                valor_unit = Decimal(str(item.get('valor_unitario', '0')))
+                valor_unit = Decimal(str(valor_unit_raw))
             except (InvalidOperation, TypeError, ValueError):
                 return JsonResponse({'erro': 'Valor avulso inválido.'}, status=400)
 
@@ -106,6 +111,9 @@ def api_salvar_consumo(request):
 
             produto = _obter_produto_item_avulso()
         else:
+            if not produto_id:
+                return JsonResponse({'erro': 'Produto não informado.'}, status=400)
+
             try:
                 produto = Produto.objects.get(pk=produto_id, ativo=True)
             except Produto.DoesNotExist:
