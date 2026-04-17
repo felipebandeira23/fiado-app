@@ -273,6 +273,9 @@ def api_busca_clientes(request):
             'nome': c.nome,
             'telefone': c.telefone,
             'status': c.status,
+            'bloqueado': c.esta_bloqueado,
+            'limite_credito': float(c.limite_credito),
+            'saldo_devedor': float(c.saldo_devedor_total),
         }
         for c in clientes
     ]
