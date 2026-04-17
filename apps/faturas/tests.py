@@ -565,6 +565,27 @@ class ListaFaturasViewTest(TestCase):
         self.assertEqual(resp.context['faturas'].paginator.count, 1)
 
 
+class RelatoriosViewTest(TestCase):
+
+    def setUp(self):
+        self.usuario = _make_usuario(admin=True)
+        self.http = HttpClient()
+        self.http.force_login(self.usuario)
+
+    def test_relatorio_exibe_em_aberto_para_cliente_com_debito_nao_vencido(self):
+        cliente = _make_cliente()
+        _make_fatura(
+            cliente,
+            total=Decimal('120.00'),
+            status=FaturaMensal.STATUS_FECHADA,
+        )
+
+        resp = self.http.get(reverse('faturas:relatorios'))
+
+        self.assertContains(resp, 'Em aberto')
+        self.assertNotContains(resp, 'badge bg-warning text-dark">Inadimplente</span>', html=False)
+
+
 # ─── Testes do Serviço: WhatsApp ──────────────────────────────────────────────
 
 class WhatsAppServiceTest(TestCase):

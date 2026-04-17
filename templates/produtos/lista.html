@@ -96,14 +96,33 @@
 
 {% block extra_js %}
 <script>
+function getCsrfToken() {
+  const cookie = document.cookie
+    .split('; ')
+    .find(row => row.startsWith('csrftoken='));
+  return cookie ? decodeURIComponent(cookie.split('=')[1]) : '';
+}
+
 document.querySelectorAll('.btn-toggle').forEach(btn => {
-  btn.addEventListener('click', () => {
-    fetch(btn.dataset.url, {
+  btn.addEventListener('click', async () => {
+    try {
+      const res = await fetch(btn.dataset.url, {
       method: 'POST',
-      headers: {'X-CSRFToken': '{{ csrf_token }}'},
-    })
-    .then(r => r.json())
-    .then(data => location.reload());
+      headers: {
+        'X-CSRFToken': getCsrfToken(),
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.erro || 'Não foi possível alterar o status do produto.');
+        return;
+      }
+      location.reload();
+    } catch (e) {
+      alert('Erro de conexão ao alterar status do produto.');
+    }
   });
 });
 </script>

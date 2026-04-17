@@ -196,8 +196,10 @@
               <td>
                 {% if item.cliente.status == 'bloqueado' %}
                   <span class="badge bg-danger">Bloqueado</span>
-                {% else %}
+                {% elif item.cliente.status == 'inadimplente' %}
                   <span class="badge bg-warning text-dark">Inadimplente</span>
+                {% else %}
+                  <span class="badge bg-info text-dark">Em aberto</span>
                 {% endif %}
               </td>
               <td class="text-end fw-bold text-danger">R$ {{ item.saldo|floatformat:2 }}</td>
@@ -268,10 +270,21 @@
 {% block extra_js %}
 {% if chart_labels != "[]" %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{{ chart_labels|json_script:"chart-labels-data" }}
+{{ chart_faturado|json_script:"chart-faturado-data" }}
+{{ chart_recebido|json_script:"chart-recebido-data" }}
+{% if forma_labels != "[]" %}
+{{ forma_labels|json_script:"chart-forma-labels-data" }}
+{{ forma_valores|json_script:"chart-forma-valores-data" }}
+{% endif %}
 <script>
   function formatCurrency(value) {
     return 'R$ ' + value.toFixed(2).replace('.', ',');
   }
+
+  const chartLabels = JSON.parse(document.getElementById('chart-labels-data').textContent);
+  const chartFaturado = JSON.parse(document.getElementById('chart-faturado-data').textContent);
+  const chartRecebido = JSON.parse(document.getElementById('chart-recebido-data').textContent);
 
   // Gráfico de barras — receita por mês
   const receitaCtx = document.getElementById('receitaChart');
@@ -279,18 +292,18 @@
     new Chart(receitaCtx, {
       type: 'bar',
       data: {
-        labels: {{ chart_labels }},
+        labels: chartLabels,
         datasets: [
           {
             label: 'Faturado',
-            data: {{ chart_faturado }},
+            data: chartFaturado,
             backgroundColor: 'rgba(46, 117, 182, 0.7)',
             borderColor: 'rgba(46, 117, 182, 1)',
             borderWidth: 1,
           },
           {
             label: 'Recebido',
-            data: {{ chart_recebido }},
+            data: chartRecebido,
             backgroundColor: 'rgba(25, 135, 84, 0.7)',
             borderColor: 'rgba(25, 135, 84, 1)',
             borderWidth: 1,
@@ -321,14 +334,16 @@
 
   // Gráfico de pizza — formas de pagamento
   {% if forma_labels != "[]" %}
+  const formaLabels = JSON.parse(document.getElementById('chart-forma-labels-data').textContent);
+  const formaValores = JSON.parse(document.getElementById('chart-forma-valores-data').textContent);
   const formaCtx = document.getElementById('formaChart');
   if (formaCtx) {
     new Chart(formaCtx, {
       type: 'doughnut',
       data: {
-        labels: {{ forma_labels }},
+        labels: formaLabels,
         datasets: [{
-          data: {{ forma_valores }},
+          data: formaValores,
           backgroundColor: [
             'rgba(25, 135, 84, 0.8)',
             'rgba(46, 117, 182, 0.8)',
