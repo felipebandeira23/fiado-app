@@ -66,6 +66,24 @@
   }
   .busca-item:hover { background: #f0f7ff; }
   .busca-item:last-child { border-bottom: none; }
+
+  .cliente-busca-wrapper { position: relative; z-index: 3; }
+  .qr-btn-wrapper { position: relative; z-index: 1; }
+
+  .busca-cliente-erro {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 .2rem rgba(220, 53, 69, 0.15);
+  }
+  .shake {
+    animation: shake 0.25s linear 2;
+  }
+  @keyframes shake {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    50% { transform: translateX(4px); }
+    75% { transform: translateX(-4px); }
+    100% { transform: translateX(0); }
+  }
 </style>
 {% endblock %}
 
@@ -97,7 +115,7 @@
 
         <div class="row g-2 mb-3">
           <!-- Busca por texto -->
-          <div class="col-12 col-md-8">
+          <div class="col-12 col-md-8 cliente-busca-wrapper">
             <label class="form-label small fw-semibold">Buscar por nome, telefone ou código</label>
             <div class="position-relative">
               <div class="input-group">
@@ -105,8 +123,11 @@
                 <input
                   type="text"
                   class="form-control"
+                  :class="erroCliente ? 'busca-cliente-erro shake' : ''"
                   placeholder="Digite para buscar..."
                   x-model="buscaTexto"
+                  x-ref="campoBuscaCliente"
+                  @focus="erroCliente = false"
                   @input.debounce.400ms="buscarCliente()"
                   @keydown.escape="resultadosBusca=[]"
                   autocomplete="off"
@@ -129,7 +150,7 @@
           </div>
 
           <!-- Botão QR Code -->
-          <div class="col-12 col-md-4 d-flex align-items-end">
+          <div class="col-12 col-md-4 d-flex align-items-end qr-btn-wrapper">
             <button
               class="btn btn-outline-dark w-100"
               @click="abrirQRCode()"
@@ -357,7 +378,7 @@
           <h5 class="fw-bold">Consumo registrado!</h5>
           <p class="text-muted mb-0">
             <strong x-text="sucessoNome"></strong><br>
-            R$ <span x-text="sucessoTotal"></span> · <span x-text="sucessoItens"></span> item(ns)
+            <span x-text="resumoSucesso()"></span>
           </p>
           <template x-if="sucessoAviso">
             <div class="alert alert-warning mt-3 text-start" x-text="sucessoAviso"></div>
@@ -404,6 +425,7 @@ function vendaRapida() {
     alertaMsg: '',
     alertaTipo: 'info',
     avisoLimite: false,
+    erroCliente: false,
 
     // Sucesso
     sucessoNome: '',
@@ -459,12 +481,14 @@ function vendaRapida() {
       this.cliente = c;
       this.buscaTexto = '';
       this.resultadosBusca = [];
+      this.erroCliente = false;
       this.verificarLimite();
     },
 
     limparCliente() {
       this.cliente = null;
       this.avisoLimite = false;
+      this.erroCliente = false;
     },
 
     verificarLimite() {
@@ -572,7 +596,16 @@ function vendaRapida() {
 
     // ── Salvar consumo ────────────────────────────────
     async salvarConsumo() {
-      if (!this.podeRegistrar) return;
+      if (!this.cliente) {
+        this.erroCliente = true;
+        this.showAlert('Selecione um cliente antes de registrar o consumo.', 'warning');
+        this.$nextTick(() => {
+          const campo = this.$refs.campoBuscaCliente;
+          if (campo) campo.focus();
+        });
+        return;
+      }
+      if (this.cliente.bloqueado || this.carrinho.length === 0 || this.salvando) return;
       this.salvando = true;
 
       const payload = {
@@ -624,6 +657,11 @@ function vendaRapida() {
       this.limparCarrinho();
       this.alertaMsg = '';
       this.avisoLimite = false;
+      this.erroCliente = false;
+    },
+
+    resumoSucesso() {
+      return `R$ ${this.sucessoTotal} · ${this.sucessoItens} ${Number(this.sucessoItens) === 1 ? 'item' : 'itens'}`;
     },
 
     // ── Utilitários ──────────────────────────────────

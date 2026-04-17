@@ -269,88 +269,88 @@
 {% if chart_labels != "[]" %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-  function formatCurrency(value) {
-    return 'R$ ' + value.toFixed(2).replace('.', ',');
-  }
+  document.addEventListener('DOMContentLoaded', () => {
+    function formatCurrency(value) {
+      return 'R$ ' + value.toFixed(2).replace('.', ',');
+    }
 
-  // Gráfico de barras — receita por mês
-  const receitaCtx = document.getElementById('receitaChart');
-  if (receitaCtx) {
-    new Chart(receitaCtx, {
-      type: 'bar',
-      data: {
-        labels: {{ chart_labels }},
-        datasets: [
-          {
-            label: 'Faturado',
-            data: {{ chart_faturado }},
-            backgroundColor: 'rgba(46, 117, 182, 0.7)',
-            borderColor: 'rgba(46, 117, 182, 1)',
-            borderWidth: 1,
-          },
-          {
-            label: 'Recebido',
-            data: {{ chart_recebido }},
-            backgroundColor: 'rgba(25, 135, 84, 0.7)',
-            borderColor: 'rgba(25, 135, 84, 1)',
-            borderWidth: 1,
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { position: 'top' },
-          tooltip: {
-            callbacks: {
-              label: ctx => formatCurrency(ctx.parsed.y)
+    const receitaCtx = document.getElementById('receitaChart');
+    if (receitaCtx) {
+      new Chart(receitaCtx, {
+        type: 'bar',
+        data: {
+          labels: {{ chart_labels|safe }},
+          datasets: [
+            {
+              label: 'Faturado',
+              data: {{ chart_faturado|safe }},
+              backgroundColor: 'rgba(46, 117, 182, 0.7)',
+              borderColor: 'rgba(46, 117, 182, 1)',
+              borderWidth: 1,
+            },
+            {
+              label: 'Recebido',
+              data: {{ chart_recebido|safe }},
+              backgroundColor: 'rgba(25, 135, 84, 0.7)',
+              borderColor: 'rgba(25, 135, 84, 1)',
+              borderWidth: 1,
             }
-          }
+          ]
         },
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: {
-              callback: val => `R$ ${val.toFixed(0)}`
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'top' },
+            tooltip: {
+              callbacks: {
+                label: ctx => formatCurrency(ctx.parsed.y)
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: val => `R$ ${val.toFixed(0)}`
+              }
             }
           }
         }
-      }
-    });
-  }
+      });
+    }
 
-  // Gráfico de pizza — formas de pagamento
-  {% if forma_labels != "[]" %}
-  const formaCtx = document.getElementById('formaChart');
-  if (formaCtx) {
-    new Chart(formaCtx, {
-      type: 'doughnut',
-      data: {
-        labels: {{ forma_labels }},
-        datasets: [{
-          data: {{ forma_valores }},
-          backgroundColor: [
-            'rgba(25, 135, 84, 0.8)',
-            'rgba(46, 117, 182, 0.8)',
-            'rgba(255, 193, 7, 0.8)',
-            'rgba(220, 53, 69, 0.8)',
-          ],
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { position: 'bottom' },
-          tooltip: {
-            callbacks: {
-              label: ctx => ' ' + formatCurrency(ctx.parsed)
+    {% if forma_labels != "[]" %}
+    const formaCtx = document.getElementById('formaChart');
+    if (formaCtx) {
+      new Chart(formaCtx, {
+        type: 'doughnut',
+        data: {
+          labels: {{ forma_labels|safe }},
+          datasets: [{
+            data: {{ forma_valores|safe }},
+            backgroundColor: [
+              'rgba(25, 135, 84, 0.8)',
+              'rgba(46, 117, 182, 0.8)',
+              'rgba(255, 193, 7, 0.8)',
+              'rgba(220, 53, 69, 0.8)',
+            ],
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: {
+              callbacks: {
+                label: ctx => ' ' + formatCurrency(ctx.parsed)
+              }
             }
           }
         }
-      }
-    });
-  }
-  {% endif %}
+      });
+    }
+    {% endif %}
+  });
 </script>
 {% endif %}
 {% endblock %}

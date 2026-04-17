@@ -149,11 +149,12 @@
     {% if fatura.status != 'paga' %}
     <div class="table-card p-3 mb-3">
       <h6 class="fw-bold mb-3"><i class="bi bi-cash-coin me-2 text-success"></i>Registrar Pagamento</h6>
-      <form method="post" action="{% url 'faturas:pagamento' fatura.pk %}">
+      <form method="post" action="{% url 'faturas:pagamento' fatura.pk %}" id="pagamentoForm">
         {% csrf_token %}
         <div class="mb-2">
           <label class="form-label small fw-semibold">Valor (R$)</label>
           {{ form.valor }}
+          <div class="invalid-feedback">Informe um valor maior que zero.</div>
           <div class="form-text">Restante: R$ {{ fatura.valor_restante|floatformat:2 }}</div>
         </div>
         <div class="mb-2">
@@ -225,4 +226,31 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('pagamentoForm');
+    const valorInput = form?.querySelector('input[name="valor"]');
+    if (!form || !valorInput) return;
+
+    const validarValor = () => {
+      const bruto = (valorInput.value || '').trim().replace(',', '.');
+      const valor = parseFloat(bruto);
+      const invalido = !bruto || Number.isNaN(valor) || valor <= 0;
+      valorInput.classList.toggle('is-invalid', invalido);
+      return !invalido;
+    };
+
+    form.addEventListener('submit', (event) => {
+      if (!validarValor()) {
+        event.preventDefault();
+        valorInput.focus();
+      }
+    });
+
+    valorInput.addEventListener('input', validarValor);
+  });
+</script>
 {% endblock %}
