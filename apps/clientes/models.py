@@ -1,6 +1,7 @@
 import uuid
 import qrcode
 from io import BytesIO
+from django.conf import settings
 from django.core.files import File
 from django.db import models
 from django.db.models import Sum
@@ -33,6 +34,14 @@ class Cliente(models.Model):
     )
     token_qr = models.UUIDField(
         'Token QR Code', default=uuid.uuid4, unique=True, editable=False
+    )
+    usuario = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='cliente_vinculado',
+        verbose_name='Usuário vinculado',
     )
     observacoes = models.TextField('Observações', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

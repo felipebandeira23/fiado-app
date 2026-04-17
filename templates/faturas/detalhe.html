@@ -123,7 +123,11 @@
       <dl class="row mb-0">
         <dt class="col-sm-5">Cliente</dt>
         <dd class="col-sm-7">
+          {% if is_customer %}
+          {{ fatura.cliente.nome }}
+          {% else %}
           <a href="{% url 'clientes:detalhe' fatura.cliente.pk %}">{{ fatura.cliente.nome }}</a>
+          {% endif %}
         </dd>
         <dt class="col-sm-5">Período</dt>
         <dd class="col-sm-7">{{ fatura.mes|stringformat:"02d" }}/{{ fatura.ano }}</dd>
@@ -146,7 +150,7 @@
   <!-- Pagamentos -->
   <div class="col-lg-5">
     <!-- Registrar pagamento -->
-    {% if fatura.status != 'paga' %}
+    {% if not is_customer and fatura.status != 'paga' %}
     <div class="table-card p-3 mb-3">
       <h6 class="fw-bold mb-3"><i class="bi bi-cash-coin me-2 text-success"></i>Registrar Pagamento</h6>
       <form method="post" action="{% url 'faturas:pagamento' fatura.pk %}">

@@ -5,7 +5,7 @@
 <div class="page-header">
   <h1><i class="bi bi-receipt me-2"></i>Detalhe do Consumo</h1>
   <div class="d-flex gap-2">
-    <a href="{% url 'consumos:lista' %}?cliente_id={{ consumo.cliente.pk }}" class="btn btn-outline-secondary">
+    <a href="{% url 'consumos:lista' %}{% if not is_customer %}?cliente_id={{ consumo.cliente.pk }}{% endif %}" class="btn btn-outline-secondary">
       <i class="bi bi-arrow-left me-1"></i>Voltar
     </a>
   </div>
@@ -18,9 +18,13 @@
         <div class="col-md-6">
           <div class="small text-muted fw-semibold">Cliente</div>
           <div class="fw-bold fs-5">
+            {% if is_customer %}
+              {{ consumo.cliente.nome }}
+            {% else %}
             <a href="{% url 'clientes:detalhe' consumo.cliente.pk %}" class="text-decoration-none">
               {{ consumo.cliente.nome }}
             </a>
+            {% endif %}
           </div>
           <div class="text-muted">{{ consumo.cliente.codigo }}</div>
         </div>

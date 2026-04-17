@@ -6,6 +6,7 @@ app_name = 'clientes'
 urlpatterns = [
     # Dashboard (página inicial)
     path('', views.dashboard, name='dashboard'),
+    path('meu-perfil/', views.meu_perfil, name='meu_perfil'),
 
     # CRUD
     path('clientes/', views.lista_clientes, name='lista'),

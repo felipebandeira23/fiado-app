@@ -3,8 +3,10 @@ import json
 from io import BytesIO
 from django.core.files import File
 from django.core.paginator import Paginator
+from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.http import Http404
 from django.db.models import Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
@@ -13,10 +15,24 @@ from .models import Cliente, ClienteQRCode
 from .forms import ClienteForm
 
 
+def _cliente_do_usuario(user):
+    try:
+        return user.cliente_vinculado
+    except ObjectDoesNotExist:
+        return None
+
+
+def _usuario_cliente(user):
+    return _cliente_do_usuario(user) is not None
+
+
 # ─── Dashboard ────────────────────────────────────────────────────────────────
 
 @login_required
 def dashboard(request):
+    if _usuario_cliente(request.user):
+        return redirect('clientes:meu_perfil')
+
     from django.db.models import Sum, F, ExpressionWrapper, DecimalField
     from apps.faturas.models import FaturaMensal
     from apps.consumos.models import Consumo
@@ -51,10 +67,43 @@ def dashboard(request):
     })
 
 
+@login_required
+def meu_perfil(request):
+    from apps.faturas.models import FaturaMensal
+    from apps.consumos.models import Consumo
+
+    cliente = _cliente_do_usuario(request.user)
+    if not cliente:
+        messages.info(request, 'Perfil do cliente disponível apenas para contas de cliente.')
+        return redirect('clientes:dashboard')
+
+    consumos = (
+        Consumo.objects
+        .filter(cliente=cliente)
+        .prefetch_related('itens__produto')
+        .order_by('-created_at')[:20]
+    )
+    faturas = (
+        FaturaMensal.objects
+        .filter(cliente=cliente)
+        .prefetch_related('pagamentos')
+        .order_by('-ano', '-mes')[:12]
+    )
+
+    return render(request, 'clientes/meu_perfil.html', {
+        'cliente': cliente,
+        'consumos': consumos,
+        'faturas': faturas,
+    })
+
+
 # ─── CRUD de Clientes ─────────────────────────────────────────────────────────
 
 @login_required
 def lista_clientes(request):
+    if _usuario_cliente(request.user):
+        return redirect('clientes:meu_perfil')
+
     qs = Cliente.objects.all()
     q = request.GET.get('q', '').strip()
     status = request.GET.get('status', '')
@@ -87,6 +136,9 @@ def lista_clientes(request):
 
 @login_required
 def novo_cliente(request):
+    if _usuario_cliente(request.user):
+        raise Http404()
+
     if request.method == 'POST':
         form = ClienteForm(request.POST, request.FILES)
         if form.is_valid():
@@ -102,6 +154,11 @@ def novo_cliente(request):
 @login_required
 def detalhe_cliente(request, pk):
     from apps.faturas.models import FaturaMensal
+
+    cliente_logado = _cliente_do_usuario(request.user)
+    if cliente_logado and str(cliente_logado.pk) != str(pk):
+        raise Http404()
+
     cliente = get_object_or_404(Cliente, pk=pk)
     faturas = FaturaMensal.objects.filter(cliente=cliente).order_by('-ano', '-mes')[:12]
     return render(request, 'clientes/detalhe.html', {'cliente': cliente, 'faturas': faturas})
@@ -109,6 +166,9 @@ def detalhe_cliente(request, pk):
 
 @login_required
 def editar_cliente(request, pk):
+    if _usuario_cliente(request.user):
+        raise Http404()
+
     cliente = get_object_or_404(Cliente, pk=pk)
     if request.method == 'POST':
         form = ClienteForm(request.POST, request.FILES, instance=cliente)
@@ -127,6 +187,9 @@ def editar_cliente(request, pk):
 
 @login_required
 def qrcode_cliente(request, pk):
+    if _usuario_cliente(request.user):
+        raise Http404()
+
     cliente = get_object_or_404(Cliente, pk=pk)
     # Garante que o QR Code existe
     if not hasattr(cliente, 'qrcode_obj'):
@@ -137,6 +200,9 @@ def qrcode_cliente(request, pk):
 
 @login_required
 def download_qrcode(request, pk):
+    if _usuario_cliente(request.user):
+        raise Http404()
+
     cliente = get_object_or_404(Cliente, pk=pk)
     if not hasattr(cliente, 'qrcode_obj'):
         _gerar_qrcode(cliente)
@@ -153,6 +219,9 @@ def download_qrcode(request, pk):
 @require_GET
 def api_cliente_por_qr(request, token):
     """Retorna dados do cliente pelo token do QR Code (chamado via AJAX)."""
+    if _usuario_cliente(request.user):
+        return JsonResponse({'erro': 'Acesso não permitido.'}, status=403)
+
     try:
         cliente = Cliente.objects.get(token_qr=token)
     except Cliente.DoesNotExist:
@@ -177,6 +246,9 @@ def api_cliente_por_qr(request, token):
 @require_GET
 def api_busca_clientes(request):
     """Autocomplete: busca clientes por nome, telefone ou código."""
+    if _usuario_cliente(request.user):
+        return JsonResponse([], safe=False)
+
     q = request.GET.get('q', '').strip()
     if len(q) < 2:
         return JsonResponse([], safe=False)

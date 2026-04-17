@@ -3,10 +3,12 @@
 
 {% block content %}
 <div class="page-header d-flex align-items-center justify-content-between">
-  <h1><i class="bi bi-file-earmark-text me-2"></i>Faturas</h1>
+  <h1><i class="bi bi-file-earmark-text me-2"></i>{% if is_customer %}Minhas Faturas{% else %}Faturas{% endif %}</h1>
+  {% if not is_customer %}
   <a href="{% url 'faturas:fechar_mes' %}" class="btn btn-primary">
     <i class="bi bi-calendar-check me-1"></i>Fechar Mês
   </a>
+  {% endif %}
 </div>
 
 <!-- Cards de resumo -->
@@ -59,6 +61,7 @@
 
 <!-- Filtros -->
 <div class="table-card mb-4">
+  {% if not is_customer %}
   <div class="px-3 py-2 border-bottom">
     <form method="get" class="row g-2 align-items-end">
       <div class="col-md-4">
@@ -106,6 +109,7 @@
       </div>
     </form>
   </div>
+  {% endif %}
 
   <!-- Tabela -->
   {% if faturas %}
@@ -113,7 +117,7 @@
     <table class="table table-hover mb-0">
       <thead>
         <tr>
-          <th>Cliente</th>
+          {% if not is_customer %}<th>Cliente</th>{% endif %}
           <th>Período</th>
           <th class="text-end">Total</th>
           <th class="text-end d-none d-md-table-cell">Pago</th>
@@ -126,12 +130,14 @@
       <tbody>
         {% for fatura in faturas %}
         <tr class="fatura-row" data-href="{% url 'faturas:detalhe' fatura.pk %}">
+          {% if not is_customer %}
           <td>
             <a href="{% url 'clientes:detalhe' fatura.cliente.pk %}" class="text-decoration-none fw-semibold">
               {{ fatura.cliente.nome }}
             </a>
             <br><small class="text-muted">{{ fatura.cliente.codigo }}</small>
           </td>
+          {% endif %}
           <td>{{ fatura.mes|stringformat:"02d" }}/{{ fatura.ano }}</td>
           <td class="text-end">R$ {{ fatura.valor_total|floatformat:2 }}</td>
           <td class="text-end text-success d-none d-md-table-cell">R$ {{ fatura.valor_pago|floatformat:2 }}</td>
@@ -170,7 +176,7 @@
   <div class="text-center text-muted py-5">
     <i class="bi bi-file-earmark-text fs-1 d-block mb-3"></i>
     <p>Nenhuma fatura encontrada.</p>
-    {% if not q and not status_filtro %}
+    {% if not is_customer and not q and not status_filtro %}
     <p class="small">Use o botão <strong>"Fechar Mês"</strong> para gerar as faturas dos consumos registrados.</p>
     <a href="{% url 'faturas:fechar_mes' %}" class="btn btn-primary">
       <i class="bi bi-calendar-check me-1"></i>Fechar Mês
