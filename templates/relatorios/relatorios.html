@@ -196,8 +196,10 @@
               <td>
                 {% if item.cliente.status == 'bloqueado' %}
                   <span class="badge bg-danger">Bloqueado</span>
-                {% else %}
+                {% elif item.cliente.status == 'inadimplente' %}
                   <span class="badge bg-warning text-dark">Inadimplente</span>
+                {% else %}
+                  <span class="badge bg-info text-dark">Em aberto</span>
                 {% endif %}
               </td>
               <td class="text-end fw-bold text-danger">R$ {{ item.saldo|floatformat:2 }}</td>
@@ -279,18 +281,18 @@
     new Chart(receitaCtx, {
       type: 'bar',
       data: {
-        labels: {{ chart_labels }},
+        labels: {{ chart_labels|safe }},
         datasets: [
           {
             label: 'Faturado',
-            data: {{ chart_faturado }},
+            data: {{ chart_faturado|safe }},
             backgroundColor: 'rgba(46, 117, 182, 0.7)',
             borderColor: 'rgba(46, 117, 182, 1)',
             borderWidth: 1,
           },
           {
             label: 'Recebido',
-            data: {{ chart_recebido }},
+            data: {{ chart_recebido|safe }},
             backgroundColor: 'rgba(25, 135, 84, 0.7)',
             borderColor: 'rgba(25, 135, 84, 1)',
             borderWidth: 1,
@@ -326,9 +328,9 @@
     new Chart(formaCtx, {
       type: 'doughnut',
       data: {
-        labels: {{ forma_labels }},
+        labels: {{ forma_labels|safe }},
         datasets: [{
-          data: {{ forma_valores }},
+          data: {{ forma_valores|safe }},
           backgroundColor: [
             'rgba(25, 135, 84, 0.8)',
             'rgba(46, 117, 182, 0.8)',

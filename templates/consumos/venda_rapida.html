@@ -119,12 +119,17 @@
                   x-model="buscaTexto"
                   x-ref="buscaInput"
                   autofocus
-                  @input.debounce.400ms="buscarCliente()"
+                  @input.debounce.250ms="buscarCliente()"
                   @focus="erroClienteObrigatorio = false"
                   @keydown.escape="resultadosBusca=[]"
                   autocomplete="off"
                 >
               </div>
+              <template x-if="buscaCarregando">
+                <div class="small text-muted mt-1">
+                  <span class="spinner-border spinner-border-sm me-1"></span>Buscando clientes...
+                </div>
+              </template>
               <!-- Resultados do autocomplete -->
               <template x-if="resultadosBusca.length > 0">
                 <div class="busca-resultado">
@@ -393,7 +398,12 @@
 
 {% block extra_js %}
 <script>
-const CSRF_TOKEN = '{{ csrf_token }}';
+function getCsrfToken() {
+  const cookie = document.cookie
+    .split('; ')
+    .find(row => row.startsWith('csrftoken='));
+  return cookie ? decodeURIComponent(cookie.split('=')[1]) : '';
+}
 
 function vendaRapida() {
   return {
@@ -401,6 +411,7 @@ function vendaRapida() {
     cliente: null,
     buscaTexto: '',
     resultadosBusca: [],
+    buscaCarregando: false,
 
     // QR Code
     scannerAberto: false,
@@ -466,11 +477,20 @@ function vendaRapida() {
     // ── Busca de cliente ──────────────────────────────
     async buscarCliente() {
       const q = this.buscaTexto.trim();
-      if (q.length < 2) { this.resultadosBusca = []; return; }
+      if (q.length < 2) {
+        this.resultadosBusca = [];
+        this.buscaCarregando = false;
+        return;
+      }
+      this.buscaCarregando = true;
       try {
         const res = await fetch(`/api/clientes/busca/?q=${encodeURIComponent(q)}`);
         this.resultadosBusca = await res.json();
-      } catch (e) { this.resultadosBusca = []; }
+      } catch (e) {
+        this.resultadosBusca = [];
+      } finally {
+        this.buscaCarregando = false;
+      }
     },
 
     selecionarCliente(c) {
@@ -623,7 +643,8 @@ function vendaRapida() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': CSRF_TOKEN,
+            'X-CSRFToken': getCsrfToken(),
+            'X-Requested-With': 'XMLHttpRequest',
           },
           body: JSON.stringify(payload),
         });
