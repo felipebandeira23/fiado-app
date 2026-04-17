@@ -70,12 +70,27 @@ class Cliente(models.Model):
 
     @property
     def saldo_devedor_total(self):
-        """Soma do restante de todas as faturas não pagas do cliente."""
+        """Soma do restante de faturas em aberto + consumos ainda não faturados."""
         from apps.faturas.models import FaturaMensal
-        faturas = FaturaMensal.objects.filter(cliente=self).exclude(
-            status=FaturaMensal.STATUS_PAGA
+        from apps.consumos.models import Consumo
+        from django.db.models import F, Sum, ExpressionWrapper, DecimalField
+
+        restante_expr = ExpressionWrapper(
+            F('valor_total') - F('valor_pago'), output_field=DecimalField()
         )
-        return sum(f.valor_restante for f in faturas)
+        saldo_faturas = (
+            FaturaMensal.objects
+            .filter(cliente=self)
+            .exclude(status=FaturaMensal.STATUS_PAGA)
+            .annotate(restante=restante_expr)
+            .aggregate(soma=Sum('restante'))['soma'] or 0
+        )
+        saldo_consumos_nao_faturados = (
+            Consumo.objects
+            .filter(cliente=self, faturado=False)
+            .aggregate(soma=Sum('valor_total'))['soma'] or 0
+        )
+        return saldo_faturas + saldo_consumos_nao_faturados
 
     @property
     def status_badge(self):

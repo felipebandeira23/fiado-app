@@ -1,6 +1,6 @@
 import calendar
 import json
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from io import BytesIO
 
 from django.contrib.auth.decorators import login_required
@@ -33,7 +33,9 @@ def lista_faturas(request):
     q = request.GET.get('q', '').strip()
     status = request.GET.get('status', '')
     mes = request.GET.get('mes', '')
-    ano = request.GET.get('ano', '')
+    ano_atual = datetime.now().year
+    ano_param = request.GET.get('ano')
+    ano = str(ano_atual) if ano_param is None else (ano_param or '').strip()
 
     if q:
         qs = qs.filter(Q(cliente__nome__icontains=q) | Q(cliente__codigo__icontains=q))
@@ -52,7 +54,7 @@ def lista_faturas(request):
 
     resumo = {
         'total_faturas': qs.count(),
-        'abertas': qs.filter(status=FaturaMensal.STATUS_ABERTA).count(),
+        'abertas': qs.filter(status__in=[FaturaMensal.STATUS_ABERTA, FaturaMensal.STATUS_FECHADA]).count(),
         'fechadas': qs.filter(status=FaturaMensal.STATUS_FECHADA).count(),
         'vencidas': qs.filter(status=FaturaMensal.STATUS_VENCIDA).count(),
         'pagas': qs.filter(status=FaturaMensal.STATUS_PAGA).count(),
@@ -78,6 +80,7 @@ def lista_faturas(request):
         'status_choices': FaturaMensal.STATUS_CHOICES,
         'resumo': resumo,
         'form_fechar': form_fechar,
+        'ano_atual': ano_atual,
     })
 
 
@@ -133,7 +136,8 @@ def registrar_pagamento(request, pk):
         )
         messages.success(request, f'Pagamento de R$ {valor:.2f} registrado com sucesso!')
     else:
-        messages.error(request, 'Erro ao registrar pagamento. Verifique os dados.')
+        erro = next(iter(form.errors.values()))[0] if form.errors else 'Erro ao registrar pagamento. Verifique os dados.'
+        messages.error(request, erro)
 
     return redirect('faturas:detalhe', pk=pk)
 
@@ -183,7 +187,7 @@ def fechar_mes(request):
                         ano=ano,
                         defaults={
                             'valor_total': total,
-                            'status': FaturaMensal.STATUS_FECHADA,
+                            'status': FaturaMensal.STATUS_ABERTA,
                             'data_fechamento': date.today(),
                             'data_vencimento': data_vencimento,
                         }
@@ -192,7 +196,7 @@ def fechar_mes(request):
                     if not criada:
                         # Fatura já existia — atualiza
                         fatura.data_fechamento = date.today()
-                        fatura.status = FaturaMensal.STATUS_FECHADA
+                        fatura.status = FaturaMensal.STATUS_ABERTA
                         fatura.save(update_fields=['data_fechamento', 'status'])
                         faturas_atualizadas += 1
                     else:
@@ -274,12 +278,7 @@ def relatorios(request):
     forma_valores = json.dumps([float(p['total'] or 0) for p in pagamentos_por_forma])
 
     # Clientes inadimplentes com saldo
-    inadimplentes = (
-        Cliente.objects
-        .filter(status__in=[Cliente.STATUS_INADIMPLENTE, Cliente.STATUS_BLOQUEADO])
-        .prefetch_related('faturas')
-        .order_by('nome')
-    )
+    inadimplentes = Cliente.objects.prefetch_related('faturas').order_by('nome')
     inadimplentes_com_saldo = []
     for c in inadimplentes:
         saldo = c.saldo_devedor_total

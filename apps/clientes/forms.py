@@ -10,7 +10,7 @@ class ClienteForm(forms.ModelForm):
             'foto', 'limite_credito', 'status', 'observacoes',
         ]
         widgets = {
-            'nome': forms.TextInput(attrs={'autofocus': True, 'placeholder': 'Nome completo do cliente'}),
+            'nome': forms.TextInput(attrs={'autofocus': True, 'placeholder': 'Nome completo do cliente', 'minlength': 3}),
             'telefone': forms.TextInput(attrs={'placeholder': '(99) 99999-9999'}),
             'cpf': forms.TextInput(attrs={'placeholder': '000.000.000-00'}),
             'endereco': forms.Textarea(attrs={'rows': 2, 'placeholder': 'Endereço completo (opcional)'}),
@@ -29,7 +29,13 @@ class ClienteForm(forms.ModelForm):
         }
 
     def clean_cpf(self):
-        cpf = self.cleaned_data.get('cpf', '').strip()
+        cpf = (self.cleaned_data.get('cpf') or '').strip()
         if not cpf:
             return None
         return cpf
+
+    def clean_nome(self):
+        nome = (self.cleaned_data.get('nome') or '').strip()
+        if len(nome) < 3:
+            raise forms.ValidationError('Informe um nome com pelo menos 3 caracteres.')
+        return nome

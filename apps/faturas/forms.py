@@ -7,10 +7,16 @@ class PagamentoForm(forms.ModelForm):
         model = Pagamento
         fields = ['valor', 'forma_pagamento', 'observacao']
         widgets = {
-            'valor': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0.01'}),
+            'valor': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0.01', 'required': True}),
             'forma_pagamento': forms.Select(attrs={'class': 'form-select'}),
             'observacao': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
+
+    def clean_valor(self):
+        valor = self.cleaned_data.get('valor')
+        if valor is None or valor <= 0:
+            raise forms.ValidationError('Informe um valor maior que zero.')
+        return valor
 
 
 class FecharMesForm(forms.Form):
