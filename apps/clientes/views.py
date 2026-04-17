@@ -19,6 +19,7 @@ from .forms import ClienteForm
 def dashboard(request):
     from django.db.models import Sum, F, ExpressionWrapper, DecimalField
     from apps.faturas.models import FaturaMensal
+    from apps.consumos.models import Consumo
 
     total_clientes = Cliente.objects.count()
     ativos = Cliente.objects.filter(status='ativo').count()
@@ -27,9 +28,14 @@ def dashboard(request):
     ultimos = Cliente.objects.order_by('-created_at')[:5]
 
     restante_expr = ExpressionWrapper(F('valor_total') - F('valor_pago'), output_field=DecimalField())
-    total_a_receber = FaturaMensal.objects.exclude(
+    total_faturas_abertas = FaturaMensal.objects.exclude(
         status=FaturaMensal.STATUS_PAGA
     ).annotate(restante=restante_expr).aggregate(soma=Sum('restante'))['soma'] or 0
+    total_nao_faturado = Consumo.objects.filter(
+        faturado=False,
+        fatura__isnull=True,
+    ).aggregate(soma=Sum('valor_total'))['soma'] or 0
+    total_a_receber = total_faturas_abertas + total_nao_faturado
     faturas_vencidas = FaturaMensal.objects.filter(status=FaturaMensal.STATUS_VENCIDA).count()
     ultimas_faturas = FaturaMensal.objects.select_related('cliente').order_by('-created_at')[:5]
 

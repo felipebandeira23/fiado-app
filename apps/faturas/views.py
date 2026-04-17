@@ -33,7 +33,7 @@ def lista_faturas(request):
     q = request.GET.get('q', '').strip()
     status = request.GET.get('status', '')
     mes = request.GET.get('mes', '')
-    ano = request.GET.get('ano', '')
+    ano = request.GET.get('ano', str(date.today().year)).strip()
 
     if q:
         qs = qs.filter(Q(cliente__nome__icontains=q) | Q(cliente__codigo__icontains=q))
@@ -52,7 +52,7 @@ def lista_faturas(request):
 
     resumo = {
         'total_faturas': qs.count(),
-        'abertas': qs.filter(status=FaturaMensal.STATUS_ABERTA).count(),
+        'abertas': qs.filter(status__in=[FaturaMensal.STATUS_ABERTA, FaturaMensal.STATUS_FECHADA]).count(),
         'fechadas': qs.filter(status=FaturaMensal.STATUS_FECHADA).count(),
         'vencidas': qs.filter(status=FaturaMensal.STATUS_VENCIDA).count(),
         'pagas': qs.filter(status=FaturaMensal.STATUS_PAGA).count(),
@@ -183,7 +183,7 @@ def fechar_mes(request):
                         ano=ano,
                         defaults={
                             'valor_total': total,
-                            'status': FaturaMensal.STATUS_FECHADA,
+                            'status': FaturaMensal.STATUS_ABERTA,
                             'data_fechamento': date.today(),
                             'data_vencimento': data_vencimento,
                         }
@@ -192,7 +192,7 @@ def fechar_mes(request):
                     if not criada:
                         # Fatura já existia — atualiza
                         fatura.data_fechamento = date.today()
-                        fatura.status = FaturaMensal.STATUS_FECHADA
+                        fatura.status = FaturaMensal.STATUS_ABERTA
                         fatura.save(update_fields=['data_fechamento', 'status'])
                         faturas_atualizadas += 1
                     else:
@@ -229,8 +229,6 @@ def fechar_mes(request):
 
 @login_required
 def relatorios(request):
-    from apps.consumos.models import Consumo
-
     restante_expr = ExpressionWrapper(
         F('valor_total') - F('valor_pago'), output_field=DecimalField()
     )
@@ -238,24 +236,53 @@ def relatorios(request):
     # Resumo geral
     total_faturado = FaturaMensal.objects.aggregate(soma=Sum('valor_total'))['soma'] or 0
     total_recebido = FaturaMensal.objects.aggregate(soma=Sum('valor_pago'))['soma'] or 0
-    total_em_aberto = FaturaMensal.objects.exclude(
+    total_faturas_abertas = FaturaMensal.objects.exclude(
         status=FaturaMensal.STATUS_PAGA
     ).annotate(restante=restante_expr).aggregate(soma=Sum('restante'))['soma'] or 0
+    total_nao_faturado = Consumo.objects.filter(
+        faturado=False,
+        fatura__isnull=True,
+    ).aggregate(soma=Sum('valor_total'))['soma'] or 0
+    total_em_aberto = total_faturas_abertas + total_nao_faturado
 
-    # Receita por mês (últimos 12 meses) — inclui pendente calculado
+    # Receita por mês (últimos 12 meses)
+    hoje = date.today()
+    ano_inicio = hoje.year
+    mes_inicio = hoje.month - 11
+    while mes_inicio <= 0:
+        mes_inicio += 12
+        ano_inicio -= 1
+
     receita_por_mes_qs = (
         FaturaMensal.objects
+        .filter(
+            Q(ano__gt=ano_inicio) |
+            (Q(ano=ano_inicio) & Q(mes__gte=mes_inicio))
+        )
         .values('ano', 'mes')
         .annotate(faturado=Sum('valor_total'), recebido=Sum('valor_pago'))
-        .order_by('-ano', '-mes')[:12]
+        .order_by('ano', 'mes')
     )
-    receita_por_mes = [
-        {**row, 'pendente': (row['faturado'] or 0) - (row['recebido'] or 0)}
-        for row in receita_por_mes_qs
-    ]
+    receita_map = {(row['ano'], row['mes']): row for row in receita_por_mes_qs}
+    receita_cronologica = []
+    ano_cursor, mes_cursor = ano_inicio, mes_inicio
+    for _ in range(12):
+        row = receita_map.get((ano_cursor, mes_cursor), {'faturado': 0, 'recebido': 0})
+        faturado = row.get('faturado') or 0
+        recebido = row.get('recebido') or 0
+        receita_cronologica.append({
+            'ano': ano_cursor,
+            'mes': mes_cursor,
+            'faturado': faturado,
+            'recebido': recebido,
+            'pendente': faturado - recebido,
+        })
+        mes_cursor += 1
+        if mes_cursor > 12:
+            mes_cursor = 1
+            ano_cursor += 1
 
-    # Dados para gráfico de receita (ordem cronológica — mês mais antigo primeiro)
-    receita_cronologica = list(reversed(receita_por_mes))
+    receita_por_mes = list(reversed(receita_cronologica))
     chart_labels = json.dumps([f'{r["mes"]:02d}/{r["ano"]}' for r in receita_cronologica])
     chart_faturado = json.dumps([float(r['faturado'] or 0) for r in receita_cronologica])
     chart_recebido = json.dumps([float(r['recebido'] or 0) for r in receita_cronologica])
@@ -274,12 +301,7 @@ def relatorios(request):
     forma_valores = json.dumps([float(p['total'] or 0) for p in pagamentos_por_forma])
 
     # Clientes inadimplentes com saldo
-    inadimplentes = (
-        Cliente.objects
-        .filter(status__in=[Cliente.STATUS_INADIMPLENTE, Cliente.STATUS_BLOQUEADO])
-        .prefetch_related('faturas')
-        .order_by('nome')
-    )
+    inadimplentes = Cliente.objects.prefetch_related('faturas').order_by('nome')
     inadimplentes_com_saldo = []
     for c in inadimplentes:
         saldo = c.saldo_devedor_total
@@ -363,7 +385,7 @@ def fatura_pdf(request, pk):
     elementos.append(Spacer(1, 0.4 * cm))
 
     # Info da fatura
-    status_map = {'aberta': 'Aberta', 'fechada': 'Fechada', 'paga': 'Paga', 'vencida': 'Vencida'}
+    status_map = {'aberta': 'Aberta', 'fechada': 'Aberta', 'paga': 'Paga', 'vencida': 'Vencida'}
     info_data = [
         ['FATURA', f'{fatura.mes:02d}/{fatura.ano}'],
         ['Cliente', fatura.cliente.nome],

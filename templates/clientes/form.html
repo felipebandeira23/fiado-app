@@ -11,7 +11,7 @@
 </div>
 
 <div class="form-card">
-  <form method="post" enctype="multipart/form-data">
+  <form method="post" enctype="multipart/form-data" id="cliente-form">
     {% csrf_token %}
 
     <div class="row g-3">
@@ -26,7 +26,7 @@
     </div>
 
     <div class="d-flex gap-2 mt-4 pt-3 border-top">
-      <button type="submit" class="btn btn-primary px-4">
+      <button type="submit" form="cliente-form" class="btn btn-primary px-4">
         <i class="bi bi-check2 me-1"></i>Salvar
       </button>
       <a href="{% url 'clientes:lista' %}" class="btn btn-outline-secondary">Cancelar</a>

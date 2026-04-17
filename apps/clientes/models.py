@@ -3,6 +3,7 @@ import qrcode
 from io import BytesIO
 from django.core.files import File
 from django.db import models
+from django.db.models import Sum
 from django.urls import reverse
 
 
@@ -70,12 +71,20 @@ class Cliente(models.Model):
 
     @property
     def saldo_devedor_total(self):
-        """Soma do restante de todas as faturas não pagas do cliente."""
+        """Soma do restante de faturas em aberto + consumos ainda não faturados."""
         from apps.faturas.models import FaturaMensal
+        from apps.consumos.models import Consumo
+
         faturas = FaturaMensal.objects.filter(cliente=self).exclude(
             status=FaturaMensal.STATUS_PAGA
         )
-        return sum(f.valor_restante for f in faturas)
+        total_faturas = sum(f.valor_restante for f in faturas)
+        total_nao_faturado = Consumo.objects.filter(
+            cliente=self,
+            faturado=False,
+            fatura__isnull=True,
+        ).aggregate(soma=Sum('valor_total'))['soma'] or 0
+        return total_faturas + total_nao_faturado
 
     @property
     def status_badge(self):

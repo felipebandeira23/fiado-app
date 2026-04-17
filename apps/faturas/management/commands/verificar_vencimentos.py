@@ -2,7 +2,7 @@
 Management command: verificar_vencimentos
 
 Executa a verificação diária de faturas vencidas.
-Marca como VENCIDA qualquer FaturaMensal com data_vencimento < hoje e status FECHADA.
+Marca como VENCIDA qualquer FaturaMensal com data_vencimento < hoje e status ABERTA/FECHADA.
 O signal post_save cuidará de atualizar o status do cliente para INADIMPLENTE.
 Envia notificação WhatsApp aos clientes cujas faturas acabaram de vencer (se configurado).
 
@@ -22,7 +22,7 @@ class Command(BaseCommand):
         hoje = date.today()
 
         vencidas = FaturaMensal.objects.filter(
-            status=FaturaMensal.STATUS_FECHADA,
+            status__in=[FaturaMensal.STATUS_ABERTA, FaturaMensal.STATUS_FECHADA],
             data_vencimento__lt=hoje,
         ).select_related('cliente')
 

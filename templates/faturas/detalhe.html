@@ -63,7 +63,7 @@
         <div class="stat-value">
           {% if fatura.status == 'paga' %}<span class="text-success">Paga</span>
           {% elif fatura.status == 'vencida' %}<span class="text-danger">Vencida</span>
-          {% elif fatura.status == 'fechada' %}<span class="text-warning">Fechada</span>
+          {% elif fatura.status == 'fechada' %}<span class="text-warning">Aberta</span>
           {% else %}<span class="text-secondary">Aberta</span>{% endif %}
         </div>
         <div class="stat-label">Status</div>
@@ -154,6 +154,9 @@
         <div class="mb-2">
           <label class="form-label small fw-semibold">Valor (R$)</label>
           {{ form.valor }}
+          {% if form.valor.errors %}
+            <div class="text-danger small mt-1">{{ form.valor.errors|striptags }}</div>
+          {% endif %}
           <div class="form-text">Restante: R$ {{ fatura.valor_restante|floatformat:2 }}</div>
         </div>
         <div class="mb-2">
