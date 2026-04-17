@@ -71,6 +71,7 @@ def dashboard(request):
 def meu_perfil(request):
     from apps.faturas.models import FaturaMensal
     from apps.consumos.models import Consumo
+    from apps.notificacoes.models import Notificacao
 
     cliente = _cliente_do_usuario(request.user)
     if not cliente:
@@ -89,11 +90,17 @@ def meu_perfil(request):
         .prefetch_related('pagamentos')
         .order_by('-ano', '-mes')[:12]
     )
+    notificacoes = (
+        Notificacao.objects
+        .filter(usuario=request.user, lida=False)
+        .order_by('-created_at')[:10]
+    )
 
     return render(request, 'clientes/meu_perfil.html', {
         'cliente': cliente,
         'consumos': consumos,
         'faturas': faturas,
+        'notificacoes': notificacoes,
     })
 
 

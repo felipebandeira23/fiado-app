@@ -9,7 +9,10 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
 from django.db import transaction
 
+from django.urls import reverse
+
 from apps.clientes.models import Cliente
+from apps.notificacoes.models import Notificacao
 from apps.produtos.models import Produto
 from .models import Consumo, ConsumoItem
 
@@ -176,12 +179,35 @@ def api_salvar_consumo(request):
                 subtotal=item['subtotal'],
             )
 
+        # ── Notificação interna para o cliente ──
+        if cliente.usuario_id:
+            linhas = []
+            for item in itens_validos:
+                nome = item['produto'].nome
+                if nome == '[SISTEMA] Item avulso':
+                    nome = 'Item avulso'
+                linhas.append(f'{nome} x{item["quantidade"]} — R$ {item["subtotal"]:.2f}')
+            detalhe = '\n'.join(linhas)
+            Notificacao.objects.create(
+                usuario_id=cliente.usuario_id,
+                tipo=Notificacao.TIPO_CONSUMO,
+                titulo=f'Consumo registrado: R$ {total:.2f}',
+                mensagem=(
+                    f'Um consumo foi registrado em sua conta.\n\n'
+                    f'{detalhe}\n\n'
+                    f'Total: R$ {total:.2f}\n\n'
+                    f'Confira se os itens e valores estão corretos.'
+                ),
+                url=reverse('consumos:detalhe', kwargs={'pk': consumo.pk}),
+            )
+
     response_data = {
         'sucesso': True,
         'consumo_id': str(consumo.id),
         'cliente_nome': cliente.nome,
         'valor_total': float(total),
         'num_itens': len(itens_validos),
+        'notificacao_enviada': cliente.usuario_id is not None,
     }
     if aviso_limite:
         response_data['aviso'] = aviso_limite
