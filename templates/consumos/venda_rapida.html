@@ -254,6 +254,27 @@
           <div class="text-center text-muted py-3"><div class="spinner-border spinner-border-sm me-2"></div>Carregando produtos...</div>
         </template>
 
+        <div class="row g-2 mb-3">
+          <div class="col-12 col-md-8">
+            <label class="form-label small fw-semibold">Adicionar valor avulso</label>
+            <div class="input-group">
+              <span class="input-group-text">R$</span>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="Ex.: 12,50"
+                x-model="valorAvulso"
+                @keydown.enter.prevent="adicionarValorAvulso()"
+              >
+            </div>
+          </div>
+          <div class="col-12 col-md-4 d-flex align-items-end">
+            <button class="btn btn-outline-primary w-100" @click="adicionarValorAvulso()">
+              <i class="bi bi-plus-circle me-1"></i>Adicionar valor
+            </button>
+          </div>
+        </div>
+
         <div class="row g-2">
           <template x-for="p in produtosFiltrados" :key="p.id">
             <div class="col-6 col-md-4">
@@ -287,7 +308,7 @@
 
         <template x-if="carrinho.length > 0">
           <div>
-            <template x-for="(item, idx) in carrinho" :key="item.produto_id">
+            <template x-for="(item, idx) in carrinho" :key="item.item_id">
               <div class="carrinho-item">
                 <div class="flex-grow-1">
                   <div class="small fw-semibold" x-text="item.nome"></div>
@@ -425,6 +446,8 @@ function vendaRapida() {
 
     // Carrinho
     carrinho: [],
+    valorAvulso: '',
+    itemSeq: 0,
     observacao: '',
     salvando: false,
 
@@ -573,18 +596,43 @@ function vendaRapida() {
 
     // ── Carrinho ──────────────────────────────────────
     adicionarItem(produto) {
-      const idx = this.carrinho.findIndex(i => i.produto_id === produto.id);
+      const idx = this.carrinho.findIndex(i => !i.avulso && i.produto_id === produto.id);
       if (idx >= 0) {
         this.carrinho[idx].quantidade++;
       } else {
         this.carrinho.push({
+          item_id: `produto-${produto.id}`,
           produto_id: produto.id,
           nome: produto.nome,
           categoria: produto.categoria,
           valor_unitario: produto.valor_unitario,
           quantidade: 1,
+          avulso: false,
         });
       }
+      this.$nextTick(() => this.verificarLimite());
+    },
+
+    adicionarValorAvulso() {
+      const valorTexto = (this.valorAvulso || '').trim().replace(',', '.');
+      const valor = Number.parseFloat(valorTexto);
+
+      if (!Number.isFinite(valor) || valor <= 0) {
+        this.showAlert('Informe um valor avulso válido e maior que zero.', 'warning');
+        return;
+      }
+
+      this.itemSeq += 1;
+      this.carrinho.push({
+        item_id: `avulso-${Date.now()}-${this.itemSeq}`,
+        produto_id: null,
+        nome: 'Item avulso',
+        categoria: 'Valor livre',
+        valor_unitario: Number(valor.toFixed(2)),
+        quantidade: 1,
+        avulso: true,
+      });
+      this.valorAvulso = '';
       this.$nextTick(() => this.verificarLimite());
     },
 
@@ -632,9 +680,10 @@ function vendaRapida() {
         cliente_id: this.cliente.id,
         observacao: this.observacao,
         itens: this.carrinho.map(i => ({
-          produto_id: i.produto_id,
+          produto_id: i.avulso ? null : i.produto_id,
           quantidade: i.quantidade,
           valor_unitario: i.valor_unitario,
+          avulso: !!i.avulso,
         })),
       };
 
