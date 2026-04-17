@@ -1,5 +1,5 @@
 import json
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
@@ -11,6 +11,22 @@ from django.db import transaction
 from apps.clientes.models import Cliente
 from apps.produtos.models import Produto
 from .models import Consumo, ConsumoItem
+
+SISTEMA_ITEM_AVULSO_NOME = '[SISTEMA] Item avulso'
+SISTEMA_ITEM_AVULSO_VALOR_PADRAO = Decimal('0.01')
+
+
+def _obter_produto_item_avulso():
+    produto, _ = Produto.objects.get_or_create(
+        nome=SISTEMA_ITEM_AVULSO_NOME,
+        defaults={
+            'descricao': 'Produto reservado para lançamentos por valor livre na Venda Rápida.',
+            'categoria': 'Sistema',
+            'valor_unitario': SISTEMA_ITEM_AVULSO_VALOR_PADRAO,
+            'ativo': False,
+        },
+    )
+    return produto
 
 
 # ─── Venda Rápida ─────────────────────────────────────────────────────────────
@@ -68,17 +84,44 @@ def api_salvar_consumo(request):
     total = Decimal('0')
     itens_validos = []
     for item in itens_data:
+        qtd_raw = item.get('quantidade', 1)
         try:
-            produto = Produto.objects.get(pk=item['produto_id'], ativo=True)
-        except Produto.DoesNotExist:
-            return JsonResponse({'erro': f'Produto inválido ou inativo.'}, status=400)
+            qtd = int(qtd_raw)
+        except (TypeError, ValueError):
+            return JsonResponse({'erro': 'Quantidade inválida.'}, status=400)
 
-        qtd = int(item.get('quantidade', 1))
         if qtd <= 0:
             return JsonResponse({'erro': 'Quantidade deve ser maior que zero.'}, status=400)
 
-        # Usar o valor atual do produto como histórico
-        valor_unit = produto.valor_unitario
+        produto_id = item.get('produto_id')
+        item_avulso = item.get('avulso') is True
+
+        if item_avulso:
+            valor_unit_raw = item.get('valor_unitario')
+            if valor_unit_raw in (None, ''):
+                return JsonResponse({'erro': 'Valor avulso é obrigatório.'}, status=400)
+
+            try:
+                valor_unit = Decimal(str(valor_unit_raw))
+            except (InvalidOperation, TypeError, ValueError):
+                return JsonResponse({'erro': 'Valor avulso inválido.'}, status=400)
+
+            if valor_unit <= 0:
+                return JsonResponse({'erro': 'Valor avulso deve ser maior que zero.'}, status=400)
+
+            produto = _obter_produto_item_avulso()
+        else:
+            if not produto_id:
+                return JsonResponse({'erro': 'Produto não informado.'}, status=400)
+
+            try:
+                produto = Produto.objects.get(pk=produto_id, ativo=True)
+            except Produto.DoesNotExist:
+                return JsonResponse({'erro': 'Produto inválido ou inativo.'}, status=400)
+
+            # Usar o valor atual do produto como histórico
+            valor_unit = produto.valor_unitario
+
         subtotal = valor_unit * qtd
         total += subtotal
         itens_validos.append({
