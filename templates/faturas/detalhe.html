@@ -237,7 +237,7 @@
 
     const validarValor = () => {
       const bruto = (valorInput.value || '').trim().replace(',', '.');
-      const valor = Number.parseFloat(bruto);
+      const valor = parseFloat(bruto);
       const invalido = !bruto || Number.isNaN(valor) || valor <= 0;
       valorInput.classList.toggle('is-invalid', invalido);
       return !invalido;

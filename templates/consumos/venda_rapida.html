@@ -378,7 +378,7 @@
           <h5 class="fw-bold">Consumo registrado!</h5>
           <p class="text-muted mb-0">
             <strong x-text="sucessoNome"></strong><br>
-            <span x-text="`R$ ${sucessoTotal} · ${sucessoItens} ${Number(sucessoItens) === 1 ? 'item' : 'itens'}`"></span>
+            <span x-text="resumoSucesso()"></span>
           </p>
           <template x-if="sucessoAviso">
             <div class="alert alert-warning mt-3 text-start" x-text="sucessoAviso"></div>
@@ -658,6 +658,10 @@ function vendaRapida() {
       this.alertaMsg = '';
       this.avisoLimite = false;
       this.erroCliente = false;
+    },
+
+    resumoSucesso() {
+      return `R$ ${this.sucessoTotal} · ${this.sucessoItens} ${Number(this.sucessoItens) === 1 ? 'item' : 'itens'}`;
     },
 
     // ── Utilitários ──────────────────────────────────
