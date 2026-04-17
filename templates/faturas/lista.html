@@ -11,7 +11,7 @@
 
 <!-- Cards de resumo -->
 <div class="row g-3 mb-4">
-  <div class="col-6 col-md-3">
+  <div class="col-6 col-md-4 col-lg">
     <div class="stat-card bg-white">
       <div class="stat-icon" style="background:#e8f4fd; color:#2E75B6;">
         <i class="bi bi-file-earmark-text"></i>
@@ -22,7 +22,7 @@
       </div>
     </div>
   </div>
-  <div class="col-6 col-md-3">
+  <div class="col-6 col-md-4 col-lg">
     <div class="stat-card bg-white">
       <div class="stat-icon" style="background:#fff3cd; color:#fd7e14;">
         <i class="bi bi-hourglass-split"></i>
@@ -33,7 +33,18 @@
       </div>
     </div>
   </div>
-  <div class="col-6 col-md-3">
+  <div class="col-6 col-md-4 col-lg">
+    <div class="stat-card bg-white">
+      <div class="stat-icon" style="background:#f8f0ff; color:#6f42c1;">
+        <i class="bi bi-lock"></i>
+      </div>
+      <div>
+        <div class="stat-value text-secondary">{{ resumo.fechadas }}</div>
+        <div class="stat-label">Fechadas</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-lg">
     <div class="stat-card bg-white">
       <div class="stat-icon" style="background:#fdecea; color:#dc3545;">
         <i class="bi bi-exclamation-triangle"></i>
@@ -44,7 +55,7 @@
       </div>
     </div>
   </div>
-  <div class="col-6 col-md-3">
+  <div class="col-6 col-md-4 col-lg">
     <div class="stat-card bg-white">
       <div class="stat-icon" style="background:#e8f8ee; color:#198754;">
         <i class="bi bi-check-circle"></i>
@@ -144,7 +155,7 @@
             {% elif fatura.status == 'vencida' %}
               <span class="badge bg-danger">Vencida</span>
             {% elif fatura.status == 'fechada' %}
-              <span class="badge bg-warning text-dark">Aberta</span>
+              <span class="badge bg-warning text-dark">Fechada</span>
             {% else %}
               <span class="badge bg-secondary">Aberta</span>
             {% endif %}

@@ -54,7 +54,7 @@ def lista_faturas(request):
 
     resumo = {
         'total_faturas': qs.count(),
-        'abertas': qs.filter(status__in=[FaturaMensal.STATUS_ABERTA, FaturaMensal.STATUS_FECHADA]).count(),
+        'abertas': qs.filter(status=FaturaMensal.STATUS_ABERTA).count(),
         'fechadas': qs.filter(status=FaturaMensal.STATUS_FECHADA).count(),
         'vencidas': qs.filter(status=FaturaMensal.STATUS_VENCIDA).count(),
         'pagas': qs.filter(status=FaturaMensal.STATUS_PAGA).count(),
@@ -187,6 +187,7 @@ def fechar_mes(request):
                         ano=ano,
                         defaults={
                             'valor_total': total,
+                            # Fatura recém-gerada fica em aberto aguardando pagamento.
                             'status': FaturaMensal.STATUS_ABERTA,
                             'data_fechamento': date.today(),
                             'data_vencimento': data_vencimento,
