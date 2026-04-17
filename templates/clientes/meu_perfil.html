@@ -42,6 +42,40 @@
   </div>
 </div>
 
+{% if notificacoes %}
+<div class="mb-3">
+  <div class="table-card">
+    <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
+      <h6 class="mb-0 fw-bold"><i class="bi bi-bell-fill me-2 text-warning"></i>Notificações</h6>
+      <form method="post" action="{% url 'notificacoes:api_marcar_todas_lidas' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-outline-secondary">Marcar todas como lidas</button>
+      </form>
+    </div>
+    <div class="list-group list-group-flush">
+      {% for notif in notificacoes %}
+      <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-start py-3">
+        <div class="me-3 flex-grow-1">
+          <div class="fw-semibold">{{ notif.titulo }}</div>
+          <div class="text-muted small" style="white-space: pre-line;">{{ notif.mensagem }}</div>
+          <div class="text-muted" style="font-size:0.75rem;">{{ notif.created_at|date:"d/m/Y H:i" }}</div>
+        </div>
+        <div class="d-flex gap-2 align-items-start">
+          {% if notif.url %}
+          <a href="{{ notif.url }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a>
+          {% endif %}
+          <form method="post" action="{% url 'notificacoes:api_marcar_lida' notif.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-secondary" title="Marcar como lida"><i class="bi bi-check2"></i></button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <div class="row g-3">
   <div class="col-lg-6">
     <div class="table-card">
