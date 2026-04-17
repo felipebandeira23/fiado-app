@@ -11,11 +11,11 @@
 </div>
 
 <div class="form-card">
-  <form method="post">
+  <form method="post" id="usuario-form">
     {% csrf_token %}
-    {% crispy form %}
+    {{ form|crispy }}
     <div class="d-flex gap-2 mt-3">
-      <button type="submit" class="btn btn-primary px-4">
+      <button type="submit" form="usuario-form" class="btn btn-primary px-4">
         <i class="bi bi-check2 me-1"></i>Salvar
       </button>
       <a href="{% url 'usuarios:lista' %}" class="btn btn-outline-secondary">Cancelar</a>

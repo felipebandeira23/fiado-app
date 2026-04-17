@@ -227,7 +227,7 @@ class FecharMesViewTest(TestCase):
         resp = self.http.post(self._url(), {'mes': hoje.month, 'ano': hoje.year})
         self.assertRedirects(resp, reverse('faturas:lista'))
         fatura = FaturaMensal.objects.get(cliente=self.cliente, mes=hoje.month, ano=hoje.year)
-        self.assertEqual(fatura.status, FaturaMensal.STATUS_FECHADA)
+        self.assertEqual(fatura.status, FaturaMensal.STATUS_ABERTA)
         self.assertEqual(fatura.valor_total, Decimal('75.00'))
 
     @patch('apps.faturas.views.enviar_notificacao_fatura_fechada', return_value=False)
@@ -339,6 +339,16 @@ class RegistrarPagamentoViewTest(TestCase):
         resp = http.post(self._url(fatura.pk), {'valor': '10.00', 'forma_pagamento': 'dinheiro'})
         self.assertEqual(resp.status_code, 302)
         self.assertIn('/login/', resp['Location'])
+
+    def test_pagamento_sem_valor_e_rejeitado(self):
+        fatura = _make_fatura(self.cliente, total=Decimal('100.00'))
+        resp = self.http.post(self._url(fatura.pk), {
+            'valor': '',
+            'forma_pagamento': Pagamento.FORMA_DINHEIRO,
+            'observacao': '',
+        })
+        self.assertRedirects(resp, reverse('faturas:detalhe', kwargs={'pk': fatura.pk}))
+        self.assertEqual(fatura.pagamentos.count(), 0)
 
 
 # ─── Testes do Management Command: verificar_vencimentos ─────────────────────
@@ -527,6 +537,32 @@ class ApiSalvarConsumoTest(TestCase):
         http = HttpClient()
         resp = http.post(self._url(), data='{}', content_type='application/json')
         self.assertEqual(resp.status_code, 302)
+
+    def test_salvar_consumo_atualiza_saldo_devedor_do_cliente(self):
+        self._post({
+            'cliente_id': str(self.cliente.pk),
+            'itens': [{'produto_id': str(self.produto.pk), 'quantidade': 2}],
+        })
+        self.cliente.refresh_from_db()
+        self.assertEqual(self.cliente.saldo_devedor_total, Decimal('30.00'))
+
+
+class ListaFaturasViewTest(TestCase):
+
+    def setUp(self):
+        self.usuario = _make_usuario()
+        self.cliente = _make_cliente()
+        self.http = HttpClient()
+        self.http.force_login(self.usuario)
+
+    def test_lista_faturas_aplica_ano_atual_por_padrao(self):
+        hoje = date.today()
+        _make_fatura(self.cliente, mes=hoje.month, ano=hoje.year, total=Decimal('50.00'))
+        _make_fatura(self.cliente, mes=1, ano=hoje.year - 1, total=Decimal('25.00'))
+
+        resp = self.http.get(reverse('faturas:lista'))
+        self.assertEqual(resp.context['ano_filtro'], str(hoje.year))
+        self.assertEqual(resp.context['faturas'].paginator.count, 1)
 
 
 # ─── Testes do Serviço: WhatsApp ──────────────────────────────────────────────

@@ -73,7 +73,7 @@
           </a>
           <div class="text-muted small">{{ c.cliente.codigo }}</div>
         </td>
-        <td>{{ c.itens.count }} item(ns)</td>
+        <td>{{ c.itens.count }} item{{ c.itens.count|pluralize:",ns" }}</td>
         <td class="fw-bold text-primary">R$ {{ c.valor_total|floatformat:2 }}</td>
         <td>
           {% if c.faturado %}

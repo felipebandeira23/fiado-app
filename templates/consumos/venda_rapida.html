@@ -66,6 +66,15 @@
   }
   .busca-item:hover { background: #f0f7ff; }
   .busca-item:last-child { border-bottom: none; }
+  .cliente-busca-wrapper { position: relative; z-index: 2; }
+  .qr-button-col { position: relative; z-index: 1; }
+  .busca-input-erro { border-color: #dc3545 !important; box-shadow: 0 0 0 .2rem rgba(220,53,69,.15) !important; }
+  .erro-cliente-msg { animation: shake .25s linear 2; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+  }
 </style>
 {% endblock %}
 
@@ -99,15 +108,19 @@
           <!-- Busca por texto -->
           <div class="col-12 col-md-8">
             <label class="form-label small fw-semibold">Buscar por nome, telefone ou código</label>
-            <div class="position-relative">
+            <div class="position-relative cliente-busca-wrapper">
               <div class="input-group">
                 <span class="input-group-text"><i class="bi bi-search"></i></span>
                 <input
                   type="text"
                   class="form-control"
+                  :class="erroClienteObrigatorio ? 'busca-input-erro' : ''"
                   placeholder="Digite para buscar..."
                   x-model="buscaTexto"
+                  x-ref="buscaInput"
+                  autofocus
                   @input.debounce.400ms="buscarCliente()"
+                  @focus="erroClienteObrigatorio = false"
                   @keydown.escape="resultadosBusca=[]"
                   autocomplete="off"
                 >
@@ -129,8 +142,9 @@
           </div>
 
           <!-- Botão QR Code -->
-          <div class="col-12 col-md-4 d-flex align-items-end">
+          <div class="col-12 col-md-4 d-flex align-items-end qr-button-col">
             <button
+              type="button"
               class="btn btn-outline-dark w-100"
               @click="abrirQRCode()"
               :disabled="scannerAberto"
@@ -313,7 +327,7 @@
 
           <button
             class="btn btn-primary w-100 py-2 fw-bold"
-            :disabled="!podeRegistrar || salvando"
+            :disabled="salvando || (cliente && cliente.bloqueado)"
             @click="salvarConsumo()"
           >
             <template x-if="!salvando">
@@ -325,7 +339,10 @@
           </button>
 
           <template x-if="!cliente">
-            <div class="text-muted text-center small mt-2">Selecione um cliente primeiro</div>
+            <div :class="'text-center small mt-2 ' + (erroClienteObrigatorio ? 'text-danger erro-cliente-msg fw-semibold' : 'text-muted')">
+              <i x-show="erroClienteObrigatorio" class="bi bi-exclamation-triangle me-1"></i>
+              Selecione um cliente primeiro
+            </div>
           </template>
           <template x-if="cliente && carrinho.length === 0">
             <div class="text-muted text-center small mt-2">Adicione ao menos um produto</div>
@@ -357,7 +374,7 @@
           <h5 class="fw-bold">Consumo registrado!</h5>
           <p class="text-muted mb-0">
             <strong x-text="sucessoNome"></strong><br>
-            R$ <span x-text="sucessoTotal"></span> · <span x-text="sucessoItens"></span> item(ns)
+            R$ <span x-text="sucessoTotal"></span> · <span x-text="sucessoItens"></span> <span x-text="sucessoItens === 1 ? 'item' : 'itens'"></span>
           </p>
           <template x-if="sucessoAviso">
             <div class="alert alert-warning mt-3 text-start" x-text="sucessoAviso"></div>
@@ -404,6 +421,7 @@ function vendaRapida() {
     alertaMsg: '',
     alertaTipo: 'info',
     avisoLimite: false,
+    erroClienteObrigatorio: false,
 
     // Sucesso
     sucessoNome: '',
@@ -457,6 +475,7 @@ function vendaRapida() {
 
     selecionarCliente(c) {
       this.cliente = c;
+      this.erroClienteObrigatorio = false;
       this.buscaTexto = '';
       this.resultadosBusca = [];
       this.verificarLimite();
@@ -465,6 +484,7 @@ function vendaRapida() {
     limparCliente() {
       this.cliente = null;
       this.avisoLimite = false;
+      this.erroClienteObrigatorio = false;
     },
 
     verificarLimite() {
@@ -572,7 +592,20 @@ function vendaRapida() {
 
     // ── Salvar consumo ────────────────────────────────
     async salvarConsumo() {
-      if (!this.podeRegistrar) return;
+      if (!this.cliente) {
+        this.erroClienteObrigatorio = true;
+        this.showAlert('Selecione um cliente antes de registrar o consumo.', 'warning');
+        this.$nextTick(() => this.$refs.buscaInput?.focus());
+        return;
+      }
+      if (this.cliente.bloqueado) {
+        this.showAlert('Cliente bloqueado. Não é possível registrar consumo.', 'danger');
+        return;
+      }
+      if (this.carrinho.length === 0) {
+        this.showAlert('Adicione ao menos um produto no carrinho.', 'warning');
+        return;
+      }
       this.salvando = true;
 
       const payload = {
