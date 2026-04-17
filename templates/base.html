@@ -26,6 +26,18 @@
   </div>
 
   <nav class="sidebar-nav">
+    {% if user.cliente_vinculado %}
+    <div class="nav-section">MINHA CONTA</div>
+    <a href="{% url 'clientes:meu_perfil' %}" class="nav-link {% if request.resolver_match.url_name == 'meu_perfil' %}active{% endif %}">
+      <i class="bi bi-person-circle"></i> Meu Perfil
+    </a>
+    <a href="{% url 'consumos:lista' %}" class="nav-link {% if request.resolver_match.app_name == 'consumos' %}active{% endif %}">
+      <i class="bi bi-clock-history"></i> Meus Consumos
+    </a>
+    <a href="{% url 'faturas:lista' %}" class="nav-link {% if request.resolver_match.app_name == 'faturas' %}active{% endif %}">
+      <i class="bi bi-file-earmark-text"></i> Minhas Faturas
+    </a>
+    {% else %}
     <div class="nav-section">GERAL</div>
     <a href="{% url 'clientes:dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
       <i class="bi bi-speedometer2"></i> Dashboard
@@ -59,6 +71,7 @@
     <a href="{% url 'usuarios:lista' %}" class="nav-link {% if request.resolver_match.app_name == 'usuarios' %}active{% endif %}">
       <i class="bi bi-person-gear"></i> Usuários
     </a>
+    {% endif %}
     {% endif %}
   </nav>
 

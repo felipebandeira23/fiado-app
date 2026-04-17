@@ -3,10 +3,12 @@
 
 {% block content %}
 <div class="page-header">
-  <h1><i class="bi bi-clock-history me-2"></i>Histórico de Consumos</h1>
+  <h1><i class="bi bi-clock-history me-2"></i>{% if is_customer %}Meus Consumos{% else %}Histórico de Consumos{% endif %}</h1>
+  {% if not is_customer %}
   <a href="{% url 'consumos:venda_rapida' %}" class="btn btn-primary">
     <i class="bi bi-lightning-charge me-2"></i>Venda Rápida
   </a>
+  {% endif %}
 </div>
 
 {% if cliente %}
@@ -52,7 +54,7 @@
     <thead>
       <tr>
         <th>Data / Hora</th>
-        <th>Cliente</th>
+        {% if not is_customer %}<th>Cliente</th>{% endif %}
         <th>Itens</th>
         <th>Total</th>
         <th>Status</th>
@@ -67,12 +69,14 @@
           <div class="fw-semibold">{{ c.data|date:"d/m/Y" }}</div>
           <div class="text-muted small">{{ c.hora|time:"H:i" }}</div>
         </td>
+        {% if not is_customer %}
         <td>
           <a href="{% url 'clientes:detalhe' c.cliente.pk %}" class="text-decoration-none fw-semibold">
             {{ c.cliente.nome }}
           </a>
           <div class="text-muted small">{{ c.cliente.codigo }}</div>
         </td>
+        {% endif %}
         <td>{{ c.itens.count }} item{{ c.itens.count|pluralize:",ns" }}</td>
         <td class="fw-bold text-primary">R$ {{ c.valor_total|floatformat:2 }}</td>
         <td>

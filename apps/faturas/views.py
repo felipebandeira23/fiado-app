@@ -5,6 +5,7 @@ from io import BytesIO
 
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q, Sum, F, Count, ExpressionWrapper, DecimalField
@@ -19,6 +20,13 @@ from .forms import PagamentoForm, FecharMesForm
 from .whatsapp import enviar_notificacao_fatura_fechada
 
 
+def _cliente_do_usuario(user):
+    try:
+        return user.cliente_vinculado
+    except ObjectDoesNotExist:
+        return None
+
+
 def _registrar_auditoria(usuario, acao, descricao):
     """Registra uma entrada no log de auditoria."""
     AuditLog.objects.create(usuario=usuario, acao=acao, descricao=descricao)
@@ -28,6 +36,7 @@ def _registrar_auditoria(usuario, acao, descricao):
 
 @login_required
 def lista_faturas(request):
+    cliente_logado = _cliente_do_usuario(request.user)
     qs = FaturaMensal.objects.select_related('cliente').all()
 
     q = request.GET.get('q', '').strip()
@@ -35,7 +44,10 @@ def lista_faturas(request):
     mes = request.GET.get('mes', '')
     ano = request.GET.get('ano', str(date.today().year)).strip()
 
-    if q:
+    if cliente_logado:
+        qs = qs.filter(cliente=cliente_logado)
+        q = ''
+    elif q:
         qs = qs.filter(Q(cliente__nome__icontains=q) | Q(cliente__codigo__icontains=q))
     if status:
         qs = qs.filter(status=status)
@@ -78,6 +90,7 @@ def lista_faturas(request):
         'status_choices': FaturaMensal.STATUS_CHOICES,
         'resumo': resumo,
         'form_fechar': form_fechar,
+        'is_customer': cliente_logado is not None,
     })
 
 
@@ -86,6 +99,10 @@ def lista_faturas(request):
 @login_required
 def detalhe_fatura(request, pk):
     fatura = get_object_or_404(FaturaMensal.objects.select_related('cliente'), pk=pk)
+    cliente_logado = _cliente_do_usuario(request.user)
+    if cliente_logado and fatura.cliente_id != cliente_logado.id:
+        return redirect('clientes:meu_perfil')
+
     consumos = Consumo.objects.filter(fatura=fatura).prefetch_related('itens__produto')
     pagamentos = fatura.pagamentos.select_related('registrado_por').all()
     form = PagamentoForm()
@@ -95,6 +112,7 @@ def detalhe_fatura(request, pk):
         'consumos': consumos,
         'pagamentos': pagamentos,
         'form': form,
+        'is_customer': cliente_logado is not None,
     })
 
 
@@ -104,6 +122,10 @@ def detalhe_fatura(request, pk):
 @require_POST
 def registrar_pagamento(request, pk):
     fatura = get_object_or_404(FaturaMensal, pk=pk)
+    cliente_logado = _cliente_do_usuario(request.user)
+    if cliente_logado:
+        messages.error(request, 'Apenas atendentes podem registrar pagamentos.')
+        return redirect('faturas:detalhe', pk=pk)
 
     if fatura.status == FaturaMensal.STATUS_PAGA:
         messages.warning(request, 'Esta fatura já está totalmente paga.')
@@ -142,6 +164,10 @@ def registrar_pagamento(request, pk):
 
 @login_required
 def fechar_mes(request):
+    if _cliente_do_usuario(request.user):
+        messages.error(request, 'Acesso não permitido para perfil de cliente.')
+        return redirect('clientes:meu_perfil')
+
     if request.method == 'POST':
         form = FecharMesForm(request.POST)
         if form.is_valid():
@@ -229,6 +255,10 @@ def fechar_mes(request):
 
 @login_required
 def relatorios(request):
+    if _cliente_do_usuario(request.user):
+        messages.error(request, 'Acesso não permitido para perfil de cliente.')
+        return redirect('clientes:meu_perfil')
+
     restante_expr = ExpressionWrapper(
         F('valor_total') - F('valor_pago'), output_field=DecimalField()
     )
@@ -350,6 +380,10 @@ def fatura_pdf(request, pk):
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable
 
     fatura = get_object_or_404(FaturaMensal.objects.select_related('cliente'), pk=pk)
+    cliente_logado = _cliente_do_usuario(request.user)
+    if cliente_logado and fatura.cliente_id != cliente_logado.id:
+        return redirect('clientes:meu_perfil')
+
     consumos = Consumo.objects.filter(fatura=fatura).prefetch_related('itens__produto')
     pagamentos = fatura.pagamentos.select_related('registrado_por').all()
 
@@ -506,6 +540,10 @@ def fatura_pdf(request, pk):
 @login_required
 def relatorio_pdf(request):
     """Gera um PDF com o resumo financeiro do sistema."""
+    if _cliente_do_usuario(request.user):
+        messages.error(request, 'Acesso não permitido para perfil de cliente.')
+        return redirect('clientes:meu_perfil')
+
     from reportlab.lib.pagesizes import A4
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -639,6 +677,10 @@ def relatorio_pdf(request):
 @login_required
 def alternar_bloqueio_cliente(request, cliente_id):
     """Alterna o status do cliente entre ATIVO e BLOQUEADO."""
+    if _cliente_do_usuario(request.user):
+        messages.error(request, 'Acesso não permitido para perfil de cliente.')
+        return redirect('clientes:meu_perfil')
+
     if not request.user.is_admin_sistema:
         messages.error(request, 'Apenas administradores podem bloquear clientes.')
         return redirect('clientes:detalhe', pk=cliente_id)
@@ -662,6 +704,10 @@ def alternar_bloqueio_cliente(request, cliente_id):
 
 @login_required
 def api_debito_cliente(request, cliente_id):
+    cliente_logado = _cliente_do_usuario(request.user)
+    if cliente_logado and str(cliente_logado.id) != str(cliente_id):
+        return JsonResponse({'erro': 'Acesso não permitido.'}, status=403)
+
     cliente = get_object_or_404(Cliente, pk=cliente_id)
     faturas = FaturaMensal.objects.filter(
         cliente=cliente

@@ -2,6 +2,7 @@ import json
 from decimal import Decimal, InvalidOperation
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
@@ -29,11 +30,21 @@ def _obter_produto_item_avulso():
     return produto
 
 
+def _cliente_do_usuario(user):
+    try:
+        return user.cliente_vinculado
+    except ObjectDoesNotExist:
+        return None
+
+
 # ─── Venda Rápida ─────────────────────────────────────────────────────────────
 
 @login_required
 def venda_rapida(request):
     """Tela principal de atendimento no balcão."""
+    if _cliente_do_usuario(request.user):
+        messages.error(request, 'Acesso não permitido para perfil de cliente.')
+        return redirect('clientes:meu_perfil')
     return render(request, 'consumos/venda_rapida.html')
 
 
@@ -180,14 +191,17 @@ def api_salvar_consumo(request):
 @login_required
 def lista_consumos(request):
     """Histórico geral de consumos com filtros por cliente e período."""
+    cliente_logado = _cliente_do_usuario(request.user)
     cliente_id = request.GET.get('cliente_id', '')
     data_de = request.GET.get('data_de', '')
     data_ate = request.GET.get('data_ate', '')
 
     consumos = Consumo.objects.select_related('cliente', 'usuario').prefetch_related('itens')
 
-    cliente = None
-    if cliente_id:
+    cliente = cliente_logado
+    if cliente_logado:
+        consumos = consumos.filter(cliente=cliente_logado)
+    elif cliente_id:
         try:
             cliente = Cliente.objects.get(pk=cliente_id)
             consumos = consumos.filter(cliente=cliente)
@@ -212,6 +226,7 @@ def lista_consumos(request):
         'cliente': cliente,
         'data_de': data_de,
         'data_ate': data_ate,
+        'is_customer': cliente_logado is not None,
     })
 
 
@@ -221,4 +236,13 @@ def detalhe_consumo(request, pk):
         Consumo.objects.select_related('cliente', 'usuario').prefetch_related('itens__produto'),
         pk=pk
     )
-    return render(request, 'consumos/detalhe.html', {'consumo': consumo})
+    cliente_logado = _cliente_do_usuario(request.user)
+    is_customer = cliente_logado is not None
+    if is_customer and consumo.cliente_id != cliente_logado.id:
+        return redirect('clientes:meu_perfil')
+    return render(request, 'consumos/detalhe.html', {
+        'consumo': consumo,
+        'is_customer': is_customer,
+    })
+    if _cliente_do_usuario(request.user):
+        return JsonResponse({'erro': 'Acesso não permitido para perfil de cliente.'}, status=403)
